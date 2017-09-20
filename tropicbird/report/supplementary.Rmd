@@ -1,0 +1,253 @@
+---
+title: "Supplemental Information"
+output: word_document
+---
+
+```{r read clean data, include = F}
+library(magrittr)
+library(ggplot2)
+season_cuts <- seq(as.Date("2009-07-01"), as.Date("2016-07-01"), by = "year")
+
+tb <- readRDS("../data/processed/tropicbird_monitoring.rds")
+eggs_chicks <- readRDS(file = "../data/processed/eggs_chicks_per_month.rds")
+new_nest_models <- readRDS(file = "../data/processed/new_nest_models.rds")
+effort <- readRDS("../data/processed/effort.rds")
+mod_s <- readRDS("../data/processed/breeding_success_models.rds")
+breeding_models_pred <- readRDS("../data/processed/breeding_models_predictions.rds")
+nest_succ_agg <- readRDS("../data/processed/nest_success_data.rds")
+all_tb <- readRDS(file = "../data/processed/basic-data.rds")
+```
+
+```{r effort, fig.height= 2, fig.width=7, fig.align="center", message=FALSE, warning=FALSE, echo=FALSE, dpi = 150}
+effort %>%
+  dplyr::mutate(date = paste(year, month, "01", sep = "-"),
+                date = as.Date(date)) %>%
+  ggplot(aes(x = date, y = n_surveys)) +
+  geom_step() +
+  theme_bw() +
+  ylab("surveys (month)") +
+  theme(legend.position = "none",
+        strip.background = element_rect(fill = "white", colour = "white"),
+        axis.title = element_text(size = 10))
+
+```
+
+_**Figure S1:** Survey effort. Number surveys per month during the study period._
+ 
+```{r seasonality_eggs-chicks, fig.height= 2.5, fig.width=7, fig.align="center", message=FALSE, warning=FALSE, echo=FALSE, dpi = 150}
+eggs_chicks %>%
+  dplyr::mutate(n_corr = n) %>%
+  dplyr::group_by(month, fkSppId, NestCode) %>%
+  dplyr::summarise(n_corr_mean = mean(n_corr),
+                   n_corr_sd = sd(n_corr),
+                   upper = n_corr_mean + n_corr_sd,
+                   lower = n_corr_mean - n_corr_sd) %>%
+  dplyr::inner_join(tb$tblSpp, 
+                    by = c("fkSppId" = "ID")) %>% 
+  dplyr::mutate(NestCode = plyr::mapvalues(NestCode, c("c1", "e"), c("downy chicks", "eggs"))) %>%
+  ggplot(aes(y = n_corr_mean, x = month, colour = Common.name, fill = Common.name)) +
+  geom_line(position = position_dodge(width = 0.5)) +
+  geom_linerange(aes(ymax = upper, ymin = lower), alpha = 0.5, position = position_dodge(width = 0.5)) + 
+  geom_point(colour = "black", position = position_dodge(width = 0.5), shape = 21) +
+  facet_wrap(~NestCode, scales = "free_y", ncol = 2) + 
+  scale_shape_manual(values = c(22, 21), name = "", labels = c("downy chicks", "eggs")) + 
+  scale_colour_brewer(palette = "Set1", name = "", labels = c("downy chicks", "eggs")) + 
+  scale_fill_brewer(palette = "Set1", name = "", labels = c("downy chicks", "eggs")) + 
+  theme_bw() +
+  theme(legend.position = "none",
+        strip.background = element_rect(fill = "white", colour = "white"),
+        axis.title = element_text(size = 10),
+        axis.text.x = element_text(angle = 90)) +
+  scale_x_continuous(breaks = 1:12, 
+                   labels = lubridate::month(lubridate::ymd(080101) + months(0:11), label = TRUE)) +
+  ylab("count") + xlab("")
+```
+
+_**Figure S2:** Mean number of observed downy chicks and eggs per month for *P. rubricauda* (red) and *P. lepturus* (blue). Vertical bars represent standard deviation of the observed values._
+
+_**Box S1:** Summary table for model of new nest establishment for P. rubricauda._
+
+```{r summary_nesting_establishment_pr, echo = F, comment=""}
+summary(new_nest_models[[1]])
+```
+
+_**Box S2:** Summary table for model of new nest establishment for P. lepturus_
+
+```{r summary_nesting_establishment_pl, echo = F, comment=""}
+summary(new_nest_models[[2]])
+```
+
+_**Table S1:** Model selection table for P. rubricauda. The best model included both location and date._
+
+```{r aic_sucess_pr, echo = FALSE, results="asis"}
+options(digits = 4)
+
+aic_s <- mod_s %>% 
+  lapply(function(x) do.call(MuMIn::model.sel, x)) %>% 
+  lapply(function(x) as.data.frame(x) %>% `rownames<-`(NULL)) %>%
+  lapply(dplyr::select,-1) %>%
+  lapply(function(x) {
+    names(x)[1:2] <- c("location","date")
+    x
+    }) %>%
+  lapply(function(x) {
+    lapply(x, function(y) {
+      if (class(y) == "factor"){
+        y <- as.character(y)
+        y <- replace(y, y == "+", "✓")
+        y <- replace(y, is.na(y), "✗")
+      } 
+      y
+    }) %>%
+      as.data.frame()
+  })
+knitr::kable(aic_s[[1]])
+```
+
+_**Table S2:** Model selection table for P. lepturus. The best model included only date._
+
+```{r aic_sucess_pl, echo = FALSE, results="asis"}
+knitr::kable(aic_s[[2]])
+```
+
+_**Box S3:** Summary table for the most parsimonious model of nesting success for P. rubricauda. Picard was chosen as the baseline level for the location factor._
+
+```{r summary_n_s_pr, echo=F, comment="  "}
+summary(mod_s[[1]][[1]])
+```
+
+_**Box S4:** Summary table for the most parsimonious model of nesting success for P. lepturus. Picard was chosen as the baseline level for the location factor._
+
+```{r summary_n_s_pl, echo=F, comment=" "}
+summary(mod_s[[2]][[2]])
+```
+
+```{r nesting_failure_egg, fig.height= 2, fig.width=3.45, fig.align="center", message=FALSE, warning=FALSE, echo=FALSE, dpi = 150}
+breeding_models_pred %>%
+  dplyr::filter(destiny == "failure_egg", islet  == "mean") %>%
+  ggplot(aes(x = date, y = bp, colour = as.factor(fkSppId), fill = as.factor(fkSppId), group = interaction(fkSppId, islet))) +
+  geom_ribbon(aes(ymax = bp + se, ymin = bp-se), alpha = 0.15) +
+  geom_line() +
+  theme_bw() +
+  scale_color_brewer(palette = "Set1") +
+  scale_fill_brewer(palette = "Set1")+
+  theme(legend.position = "none",
+        strip.background = element_rect(fill = "white", colour = "white"),
+        axis.title = element_text(size = 10)) +
+  xlab("") + ylab("nest failure prob.\n(egg stage)")
+```
+
+_**Figure S3:** Probability of nesting failure at the egg stage for *P. rubricauda* (red) and P. lepturus (blue)._
+
+```{r per-islet-plot, eval= T, echo = F, message = F, warning = F, results = "hide", fig.width=7, fig.height= 2.5, fig.align="center", dpi = 150}
+
+
+sortlevels <- function(data_f, dfac, m = "m"){
+  d <- data_f %>%
+    dplyr::group_by_(dfac) %>%
+    dplyr::summarise_(lazyeval::interp(~sum(var), var = as.name(m))) 
+  class(d) <- "data.frame"
+  as.character(d[order(d[, 2, drop = T]),1])
+}
+
+agg_islet <- nest_succ_agg %>% 
+  dplyr::filter(destiny == "success") %>%
+  dplyr::mutate(season = cut(date, season_cuts[-1]),
+                fkIsletID = as.character(fkIsletID),
+                fkSppId = as.character(fkSppId)) %>%
+  dplyr::group_by(fkSppId, Name., season) %>%
+  dplyr::filter(!is.na(season)) %>%
+  dplyr::summarise(s_prob = mean(response, na.rm = T)) %>% 
+  dplyr::full_join(expand.grid(season = as.character(season_cuts[-1]), 
+                               fkSppId = as.character(c(1,2)),
+                               Name. = as.character(unique(nest_succ_agg$Name.)))) %>% 
+  dplyr::mutate(s_prob = replace(s_prob, is.na(s_prob), 0.01234)) %>%
+  dplyr::group_by()
+
+agg_islet %>%
+  dplyr::filter(s_prob != 0.01234) %>%
+  dplyr::group_by(Name., fkSppId) %>%
+  dplyr::summarise(m = mean(s_prob, na.rm = T),
+                   sd = sd(s_prob, na.rm = T)) %>%
+  dplyr::group_by() %>%
+  dplyr::mutate(max = plogis(qlogis(m) + qlogis(sd)),
+                min = plogis(qlogis(m) - qlogis(sd)), 
+                Name. = as.character(Name.)) %>%
+  dplyr::mutate(Name. = factor(Name., sortlevels(., "Name.", "m"))) %>% ggplot(aes(x = Name., colour = as.factor(fkSppId))) +
+  geom_bar(aes(y = m, fill = as.factor(fkSppId)), position = position_dodge(width = 0.85), width = 0.8, stat = "identity", alpha = 0.75) +
+  geom_linerange(aes(ymin = min, ymax = max), position = position_dodge(width = 0.85)) +
+  scale_colour_brewer(palette = "Set1")  + 
+   scale_fill_brewer(palette = "Set1")  + 
+  theme_bw() +
+  theme(legend.position = "none",
+        strip.background = element_rect(fill = "white", colour = "white"),
+        axis.title = element_text(size = 10)) +
+  xlab("") + ylab("probability of success")
+```
+
+_**Figure S4:** Probability of nesting success in different locations for *P. rubricauda* (red) and P. lepturus (blue). Vertical lines indicate the standard deviation._
+
+```{r per islet nests, eval= T, echo = F, message = F, warning = F, results = "hide", fig.width=7, fig.height= 2.5, fig.align="center", dpi = 150}
+agg_nnest <- all_tb %>% 
+  dplyr::filter(NewExisting == "New") %>%
+  dplyr::mutate(season = cut(date, season_cuts[-1]),
+                fkIsletID = as.character(fkIsletID),
+                fkSppId = as.character(fkSppId)) %>%
+  dplyr::group_by(fkSppId, season, fkIsletID) %>%
+  dplyr::summarise(n_nest  = n()) %>% 
+  dplyr::full_join(expand.grid(season = as.character(season_cuts[-1]), 
+                               fkSppId = as.character(c(1,2)),
+                               fkIsletID = as.character(unique(all_tb$fkIsletID)))) %>% 
+  dplyr::mutate(n_nest = replace(n_nest, is.na(n_nest), 0)) %>%
+  dplyr::filter(!is.na(season))  %>%
+  dplyr::inner_join(dplyr::mutate(tb$tblIslets, 
+                                  fkIsletID = as.character(pkIsletID)))
+
+agg_nnest %>%
+  dplyr::group_by(fkSppId, Name.) %>%
+  dplyr::summarise(m = mean(n_nest, na.rm = T),
+                   m_sd = sd(n_nest, na.rm = T),
+                   min  = m-m_sd,
+                   max = m + m_sd) %>%
+  dplyr::group_by() %>%
+  dplyr::mutate(Name. = as.character(Name.), 
+                Name. = factor(Name. , sortlevels(., "Name.", "m"))) %>%
+  dplyr::filter(Name. != "Beach (historical)") %>% 
+  ggplot(aes(x = Name., colour = as.factor(fkSppId))) +
+  geom_bar(aes(y = m, fill = as.factor(fkSppId)), position = position_dodge(width = 0.85), width = 0.8, stat = "identity", alpha = 0.75) +
+  geom_linerange(aes(ymin = min, ymax = max), position = position_dodge(width = 0.85)) +
+  scale_colour_brewer(palette = "Set1")  + 
+   scale_fill_brewer(palette = "Set1")  + 
+  theme_bw() +
+  theme(legend.position = "none",
+        strip.background = element_rect(fill = "white", colour = "white"),
+        axis.title = element_text(size = 10)) +
+  xlab("") + ylab("number of nests (yearly)") +
+  scale_y_sqrt(breaks = c(1, 10, 20, 40))
+  # geom_hline(yintercept = 1, linetype = 2)
+
+
+```
+
+_**Figure S5:** Number of nests per year in different locations for *P. rubricauda* (red) and P. lepturus (blue). Vertical lines indicate the standard deviation._
+
+```{r, eval = F, include = F}
+dplyr::full_join(agg_islet, agg_nnest) %>%
+  dplyr::filter(s_prob != 0.01234,
+                n_nest > 2, 
+                fkSppId == "1") %>%
+  glm(data = ., s_prob ~ n_nest, family = "binomial") %>% summary
+  
+  
+  
+  dplyr::group_by(fkSppId, Name.) %>%
+  dplyr::summarise(n_nest = mean(n_nest),
+  s_prob = mean(s_prob)) %>%
+  ggplot(aes(x = n_nest, y = s_prob, colour = as.factor(fkSppId))) +
+  geom_point() +
+  geom_smooth(method = "lm")
+
+agg
+  
+```
+

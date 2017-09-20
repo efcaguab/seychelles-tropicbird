@@ -1,0 +1,77 @@
+---
+title: 'Conflicting climate-linked pressures on tropical pelagic seabirds '
+output: pdf_document
+header-includes:
+   - \usepackage{setspace}
+   - \usepackage{lineno}
+   - \usepackage{booktabs}
+---
+
+E. Fernando Cagua^1,2^, April J. Burt^1^, Nancy Bunbury^1^
+
+^1^ Seyehelles Island Foundation, La Ciotat Building, Mont Fleuri, Victoria, Mahe, Seychelles
+
+^2^ Centre for Integrative Ecology, School of Biological Sciences, University of Canterbury, Private Bag 4800, Christchurch 8041, New Zealand
+
+__Correspondence to:__ Nancy Bunbury (nancy@sif.sc) - + 248 432 1735 - Seyehelles Island Foundation, La Ciotat Building, Mont Fleuri, Victoria, Mahe, Seychelles
+
+__Running title:__ 45 characters max.
+
+\linenumbers
+\doublespacing
+
+# Summary
+
+(Less than 350 words)
+
+1. Broad conceptual question
+2. Study system and specific question
+3. Methods + Results
+4. Conclusions
+5. Broader conceptual advance
+
+__Key words:__ Max 8 in alphabethical order
+
+# Introduction
+
+
+# Methods
+
+# Results
+
+![Wavelet decomposition of the number of new nests established by the focal species. The colour scale indicate how the power of a particular period (y axis) changes during the study period (x axis). Red and blue indicate a higher and low power, respectively, while white corresponds to the mean power in each time series. Dashed lines indicate the cone of influence, above which results should not be interpreted. The black contours indicate the regions in which periodicity was significantly different from the random expectation at the 0.05 level.](../figs/periodogram.pdf)
+
+![Seasonal patterns of nest establishment (A), hatching (B), and fledging (C) success for the Red-tail tropicbird (*Phaeton rubricauda*; red) and the White-tail tropicbird (*Phaeton lepturus*; blue). Dates correspond to the time in which the nest was first encountered. Lines and shaded areas correspond to the estimate and the standard error of the GAMs additive terms.](../figs/seasonality.pdf)
+
+
+![Temporal trends of nest establishment (A), hatching (B), and fledging (C) success for the Red-tail tropicbird (*P. rubricauda*; red) and the White-tail tropicbird (*P. lepturus*; blue). Lines and shaded areas correspond to the estimate and the standard error of the GAMs additive terms.](../figs/trend.pdf)
+
+```{r table-gams, echo = F, message = F, results='asis'}
+library(xtable)
+library(magrittr)
+
+addtorow <- list()
+addtorow$pos <- list()
+addtorow$pos[[1]] <- c(0, 2)
+addtorow$pos[[2]] <- 4
+addtorow$command <- c('\vspace{2mm} \n', '\vspace{10mm} \n')
+
+readr::read_csv("../tabs/tab_summary_gams.csv") %>% 
+	# mu_c(p.date >= 0.05, p.date = paste())
+	# dplyr::mutate(model = replace(model, c(2, 4, 6), "")) %>%
+	`names<-`(c("species",
+							"model",
+							"$R^2$",
+							"$p_{date}$",
+							"$p_{season}$")) %>%
+	xtable(caption = "R square values of the generalised additive models depicted in Figure 2 and 3 and p values of the smooth terms: season (time of the year) and date", 
+				 digits = c(0, 0, 0, 2, 3, 3)) %>%
+	print(sanitize.text.function = function(x){x}, 
+				hline.after = c(0), 
+				include.rownames = F, 
+				booktabls = T, 
+				caption.placement = "top")
+```
+
+
+# Discussion

@@ -1,0 +1,7 @@
+"species","model","R","p.date","p.season"
+"Red-tail tropicbird","new nests",0.41,0,0
+"Red-tail tropicbird","hatching success",0.03,0.013,0
+"Red-tail tropicbird","fledging success",0.08,0,0
+"White-tail tropicbird","new nests",0.03,0.09,0.151
+"White-tail tropicbird","hatching success",0.03,0.679,0.01
+"White-tail tropicbird","fledging success",0.03,0.006,0.141

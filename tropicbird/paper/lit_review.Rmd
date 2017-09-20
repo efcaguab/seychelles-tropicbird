@@ -1,0 +1,141 @@
+---
+title: "Literature review"
+output: word_document
+bibliography: references.bib
+---
+
+Excelent pisiological introduction in @Hart2016a
+
+# Population
+
+* Around 1800 nesting pairs for PR and 2000 pairs for PL [@Diamond1971]
+
+* I forgot to check population sizes in other places :/, depending on the focus might need to check again
+
+# Diet
+
+* PR 50-65% flying fish 50-35% cephalopods [@Fleet1974] Flying Fish, Sardines, King Garfish, Garfish, and Scaly Mackerel
+
+* PR diet changes seasonally and is tunned to use large dolphinfish abbundand in warmer months [@LeCorre2003]. they rely on predictable food sources. Maybe PL doesn't...
+
+* However PR well adapted to changing conditions, no changes on multiple ENSOS in Christmass island [@Schreiber1994]
+* Little change between the diet of PR during egg incubation and chick rearing (Christmass island) [@Navarro2014]
+* PL is pelagic [@Bailey1968] and solitary feeder [@Feare1981]
+* The relatively long incubation times of PL and PR might be related to the difficulties of securing food in tropical offshore habitats and potentially the relative absense of predators (until recently) [@Whittow1980]
+* In aldabra both species feed on flying fish Exocotiedae and squid. Lepturus more squid and smaller fish and PR very large fish and pelagic octopods [@Diamond1971]
+* PL favours clear water for feeding [@Haney1988], no idea about PR but if that's the case that might be a reason for a difference. 
+* PL travels around 25 km of its nest to look for food while feeding the chick [@Pennycuick1990]
+* @Dunlop2001a suggests that PL might be less dependent on seasonal food sources because of the pelagic diet to explain differences in seasonality. 
+* PL @Ramos2003a highligts the importance of food provisioning for determining the success fledging of the chick - unsuccessful are fed less often and smaller meals
+* PL Adults optimise foraging to met the calorific needs of their chicks, smaller more frequent meals when small, larger less frequent meals when larger [@Ramos2003a]
+* PL is kinda of an oportunistic feeder and has little overlap with other sea birds, and a large diversity on prey [@Catry2009]
+* Diet composition of PL was very similar during both moonsoons in Seychelles [@Catry2009]
+* Little effect of environmental variables in PL diet composition [@Catry2013]
+
+# Nests
+
+* Incubation temperature seems to be between 27-32°C for PL [@Hart2016a], presumably similar for PR
+* Sheltered nests have more stable ambient temperatyres [@Hart2016a] and site selection offsets difficulties imposed by the weather
+* Best sites are usually used by individuals in better condition and these factors cann act concurently (Kim and Monaghan, 2005; Fast et al., 2007).
+* Favourable microclimates are increasingly valuable in light of global change, particularly where species are incubating at its threshold [@Hart2016a]
+* PL uses their feet to warm up the egg [@Hart2016b]
+
+* West islets known to be a nesting since a long time ago [@Benson1967]
+* "Most islets are of type 3, composed of relatively thick champignon, occasionally with a flatter platin-like surface; the islets along the north coast of South Island tend to rise rather higher above h.w.s. than those along the Middle Island shore and are separated as type 3 b. Type 4 islets have a basal layer of champignon capped with remnants of an upper layer of poorly consolidated limestone composed largely of coral debris; the islets south of Passe Gionnet are composed entirely of this latter rock type, frequently capped by solution pans and rising to 1.5 or 1.8 m above h.w.s. (type 5). Some islets of each of the three major types (3 to 5) were visited at approximately monthly intervals to follow the progress of marked tropic bird nest-sites. Type 5 islets were found to be favoured by rubricauda, types 3 and 4 by lepturus; on type 4 the junction between the two rock types is frequently undercut and was a favourite nest site for lepturus." [@Diamond1971]
+* PR places the nest under protective vegetation [@Fleet1972; @Morrell2000]
+* PR prefers nest sites had high periferal cover when compared to random sites [@Clark1983], periferal cover sites offers shade which is important because of the thermal sensitivity [@Howel1962].
+* In Aldabra RT only nests during the wet season. Presumably because shade is increassed and more OK nesting sites become available [@Prys-Jones1980]. Shade reaches a minimum towards the end of the dry season [@Prys-Jones1980]
+* The availability of nests sites might be an important factor limiting the number of breeding pairs [@Clark1990a]
+* Proximity of nests might be due to coloniality [@Clark1990a]
+* Little overlap (~6%) in nest sites by both species [@Prys-Jones1980]
+* PL nests shaded in rock cavities [@Burger1991]  (in Maurious), same in Cousin, shaded caves or rock crevices, and ocassionally on the ground or tree holes [@Phillips1987]
+* PL nested in rock crevices protected from wind and sunshine [@Shaffner1991]
+* PL nests in open caves and burrows in cliffs or on limestone grounds (Brazil), that are more exposed than most other colonies, that might explain low breeding success [@Leal2016]
+
+# Seasonality
+
+* PR nesting is seasonal: Egg laying peak April-June nort, June -equator and Aug-Oct in southern [@Fleet1974] (not really)
+
+* PR in Europe same as in Aldabra if anything a bit earlier, incubation in December to January, chick rearing from february to march-june [@Corre2001]
+
+* PL not seasonal in Europe, Madagascar [@Corre2001]
+
+* PR seasonality might be related to food abundance but climate might be significant too
+* PR Autum in Christmass island [@Schreiber1970]
+* PL nesting not seasonal: eggs layed every 5-10 months suggested to be because of nest site competition [@Stonehouse1962]
+* PL nesting not seasonal [@Phillips1987; @Diamond1975; @Prys-Jones1980; Dunlop2001a]
+* In tropical populations it might be related to limitations of habitat (as in Aldabra) or food () or even other pressures [@Prys-Jones1980]. PL doesn't have any habitat limitation and hence breeds all year round [@Prys-Jones1980; Diamond1975]
+* SST and Chlol- during an el niño affected breeding success and timing in Red billed tropicbirds in Baja California [@Castillo-Guerrero2011]
+
+### Climate
+* PR climate could affect the onset of the egg laying [@Fleet1972]
+
+* Climate has been hypothesised to affect range expansions and modify nesting season in PR [@Dunlop1986]
+
+# Success
+
+The more esporadic the visits the higher the observed success rate
+
+"Previous studies indicate that breeding success of colonial seabirds is mainly influenced by climatic variations (Ancona et al., 2011), food availability (Hamer et al., 1993; Dearborn et al., 2001), introduction of exotic species (Russel and Le Corre, 2009) and intra/interspecific competition (Coulson, 2001; Dobson and Madeiros, 2010). In cavity-nesting seabirds, cavity orientation can ameliorate micro-climate effects (e.g. Conner, 1975; Stauffer and Best, 1982). For WTTBs, breeding success has been observed to be affected by nest abandonment, intraspecific combats and predation by rats (Rattus rattus (Linnaeus, 1758) (Garnett and Crowley, 2000; Sarmento et al., 2014) and crabs (Gecarcinus spp. and Ocypode spp.) (Schaffner, 1991; Phillips, 1987). In this context, the unusual nest form (recorded previously only in Christmas Island – Stokes 1988) which exposes birds to both predators and adverse weather conditions may be responsible for the low hatching and fledging success observed in this study. Estimated" [@Leal2016]
+
+### PR
+
+* Nesting success: 17-38% PR Hawaii [@Fleet1972] 
+
+* 46-80% in Western Australia [@Tarburton1977]
+
+* Maximum estimates in 1976 of 45% for PR and 46% PL in Aldabra 
+* Maximum estimates in 1967-68 of 4.4% for PR, in 1969 of 44.4% PR on monthly visits [@Diamond1975]
+* 68 - 85% (1992-1998) in Johnston Atoll [@Schreiber2001]
+* 76-88% (1991) in Christmass island [@Schreiber1994], 85-82% Johnston atoll 1991 [@Schreiber1994]
+* 59±4% (2006-2013) in O'Ahu, Hawaii [@Vanderwerf2014]
+* 2-8.5% in Europa (2008-2012) when rats where not controled and 32% when rats were controlled in an islet [@Ringler2015]
+* 14.3% in Fernando Norohna 2011-2012 [@Leal2016]
+* PR nestling mortality is highest when the bird is young for both PR [@Fleet1972] and PL [@Stonehouse1962]. Most of the failures caused bt rat 53-65% or abandonement 22-39%. Possibly caused by disturbances, including people [@Fleet1972] 
+* Overheating might also contrbute to both egg and chick mortality [@Howel1962]
+* 76-88% in 1991-1992 [@Schreiber1994] Including ENSO years
+
+
+### PL
+
+* Success 30% in Ascension Island [@Stonehouse1962]. 50% as egg and 17.8% as chicks. Loss at the egg stages mainly due to abandonement disturbance with other birds. 
+
+* Success of 36% in Cousin in 1986 [@Phillips1987]
+
+* Success between 21-32% (1990-2002) [@Ramos2005]
+* Maximum estimates in 1967-68 of 50% for PL, in 1969 46.1% PL on monthly visits [@Diamond1975]
+* Success of 0.2273 ± 0.08081 (1983), 0.1534 ± 0.04604 (1984), 0.2497 ± 0.05369 (1985), and 0.2648 ± 0.05515 (1986) in Puerto Rico [@Shaffner1991]
+* Success of 25% (2003-2004) in Cousin Island [@Malan2010]
+* 6.9% in Europa for non rats controlled habitats [@Ringler2015]
+* Heavier chicks also are more likely to fledge so an impact of food availability is to be expected [@Phillips1987]
+* Acompained chicks are also more likely to successfuly fledge [@Phillips1987]
+* Overheating also recorded as a cause for egg and chick mortaility [@Phillips1987], small degree of predation and some because of starvation [@Phillips1987], very unlikely because of competition
+* Most chicks die when young [@Phillips1987]
+* Starvation plays a role on nestling survival [@Ramos2003a]
+* Most deathd caused by starvation [@Ramos2005]
+* Survival inversely correlated to ENSO Index [@Ramos2005]
+
+# Predation
+
+* PR rat predation starts when plant food is scarce for rats and stops when there is availability [@Fleet1972]. Seasonality in PR dictaded by that?
+
+* PL predated by rats, severely in one the islands in Puerto Rico, not in the other [@Shaffner1991]
+* PR initiates nesting only after rats were exterminated [@Bell1995]
+* PR returned to Kermadec Islands after the erradication of introduced rats [@Veitch2011]
+* Nesting pairs and nesting success responded positively to invasive predator erradication in Hawaii [@Vanderwerf2014]
+* Very low nest success when rats were present for both PL and PR [@Ringler2015]
+
+**Check incubation and fledging period change**
+
+
+# Possible venues
+
+* With a focus on physiology impacting ecology :[Functional Ecology](http://www.functionalecology.org/view/0/aimsandscope.html)
+* With a focus on they rejected us and these journals aren't too bad [Oecologia](http://www.springer.com/life+sciences/ecology/journal/442) or [MEPS]()
+
+Depending on the results these could also be considered:
+
+* With a focus on this is cool: [Biology Letters](http://rsbl.royalsocietypublishing.org/content/author-information)
+* With a management & conervation perspective [Ecological Applications](http://esajournals.onlinelibrary.wiley.com/hub/journal/10.1002/(ISSN)1939-5582/aims-and-scope/read-full-aims-and-scope.html) or [Journal of Applied Ecology](http://www.journalofappliedecology.org/view/0/aimsAndScope.html)
+
+## References
