@@ -54,7 +54,7 @@ pm <-
 	scale_y_continuous(name = 'new nests (month)') +
 	scale_colour_brewer(palette = 'Set1', name = "", guide = guide_legend(title = NULL, direction = 'horizontal')) +
 	scale_fill_brewer(palette = 'Set1', name = "", guide = guide_legend(title = NULL, direction = 'horizontal')) +
-	scale_linetype(name = "", guide = guide_legend(title = NULL, direction = 'horizontal')) +
+	scale_linetype_manual(name = "", guide = guide_legend(title = NULL, direction = 'horizontal'), values = c(1,2,3)) +
 	# guides(fill = guide_legend(direction = 'horizontal', ncol = 1)) +
 	theme_fe +
 	theme(legend.position = 'top', legend.direction = 'vertical', legend.box = "vertical", 
