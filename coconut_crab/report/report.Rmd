@@ -1,0 +1,568 @@
+---
+title: "Coconut crab (*Birgus latro*) monitoring in Picard"
+output: word_document
+bibliography: ./references.bib
+---
+```{r libraries, echo = FALSE, warning = F, message = F}
+library(magrittr)
+library(dplyr)
+library(ggplot2)
+library(knitr)
+library(mgcv)
+library(cowplot)
+library(foreach)
+opts_knit$set (root.dir=normalizePath('../'))
+```
+
+```{r read data and results, echo = FALSE, warning = F, message = F}
+"../code/functions" %>% 
+	list.files(full.names = T) %>%
+	plyr::l_ply(source)
+
+
+cc <- readRDS(file = "../data/processed/crabs.rds")
+col_event <- readRDS(file = "../data/processed/col_events.rds")
+lw_m <- readRDS(file = "../data/processed/length_weight_model.rds")
+loc_dist <- readRDS(file = "../data/processed/locality_distances.rds")
+cc_m <- readRDS(file = "../data/processed/crab_master_df.rds")
+dens <- readRDS(file = "../data/processed/pop_density.rds")
+pc <- readRDS(file = "../data/processed/habitat_prcomp.rds")
+
+m_r <- readRDS(file =  "../data/processed/sex_ratio_model.rds")
+m_s <- readRDS(file = "../data/processed/size_model.rds")
+m_e <- readRDS(file = "../data/processed/egg_model.rds")
+m_m <- readRDS(file = "../data/processed/moult_model.rds")
+m_c <- readRDS(file = "../data/processed/count_model.rds")
+m_d <- readRDS(file = "../data/processed/density_model.rds")
+
+mu <- dplyr::mutate
+se <- dplyr::select
+gr <- dplyr::group_by
+fi <- dplyr::filter
+su <- dplyr::summarise
+re <- dplyr::rename
+ar <- dplyr::arrange
+
+th <- theme_bw() +
+  theme(strip.background = element_blank(),
+        plot.margin = grid::unit(c(0.4,0.4, 0.4, 0.4), "lines"),
+        text = element_text(size = 9),
+        legend.title = element_text(size = 14),
+        plot.title = element_text(face = "bold"),
+        legend.position = c(0,0),
+        legend.direction = "horizontal",
+        legend.key.size = grid::unit(0.7, "lines"),
+        legend.margin = grid::unit(0, "lines"),
+        legend.justification = c(0,0),
+        legend.background = element_rect(fill = alpha('white', 0.5)))
+
+ccc <- cc %>%
+  dplyr::full_join(col_event)
+
+loc_dist_g <- loc_dist %>%
+  mu(locality = as.numeric(locality)) %>%
+  fi(!(area == "CP" & as.numeric(locality) <= 12)) %>%
+  gr(area) %>%
+  su(dist_shore_min = min(dist_shore),
+     dist_shore_max = max(dist_shore),
+     dist_shore_mean = mean(dist_shore),
+     n_sec = n(),
+     sec_min = min(length),
+     sec_max = max(length),
+     length = sum(length))
+```
+
+# Key findings
+
+* Aldabra might have, along with Christmas Island, the only significant _Birgus latro_ population worldwide. However, Aldabra might be one of the last safe refugia for this species, as the status of the Christmas Island population is of concern and their numbers on decline. 
+* Overall _Birgus latro_ densities in Picard transects is 35.4 ± 1.69 ind./ha. This density has been stable over the last 9 years, and evidence for population increase or decline was not found.
+* We demonstrate substantial spatial and temporal heterogeneity on observed densities, which when compounded with the cryptic nature of this species, call into question previous density estimates for this species elsewhere. 
+* As observed in most studied populations worldwide, Aldabra's population is sexually dimorphic, with males being substantially larger than females. 
+* At the relatively small spatial scale of this study, sex ratio appears to be extremely biased towards males (76% of encountered individuals). Only one studied population in New Caledonia has been found to have lower male to female ratio than the one found in Picard.
+* Based on the encounters with ovigerous females, the reproductive season occurs with most likelihood between December and March, at the beginning of the rainy season. Moreover, we found signs of synchrony with the moon cycle as ovigerous females were mostly encountered during surveys performed close to new moon. This synchrony is likely related to the timing of spawning, nevertheless, it can also be related to timing egg extrusion.
+* Competitive dominance by large males and female habitat requirements seems to underpin spatial and temporal dynamics observed on _B. latro_ population structure (this still needs to be explicitly tested prior to publication).
+
+## Spatial and temporal variability
+
+* From February to May, the overall number of crabs observed is higher than average. This rise is largely due to an increase on the number of males. During this time, large dominant males favour areas further from shore, presumably of higher quality, while females and smaller males are mostly encountered in near-shore habitats. Afterwards, roughly from June to December, the overall number of crabs is lower than average. Again, this is largely due to a decrease on the number of males, particularly of large ones, which seem to preferentially undergo moulting during the drier months of the year. During this period, in stark contrast with the lower male density, female counts increase on the second half of the year both in the coastal and inshore areas, likely opportunistically filling the available niche left by dominant males. Nevertheless, the observed affinity of females to the coast is not likely to be an exclusive result of male dominance as large females also preferentially occupied coastal habitats during the dry season, when large dominant males are less likely to be encountered. Female densities peak between September to December which coincides with a period in which males of sexually active sizes are commonly encountered. 
+* The timing between mating and egg extrusion is unknown. As female individuals don't possess seminal receptacle, it is believed that egg extrusion occurs shortly after mating. However, the dataset offers evidence, albeit somewhat ambiguous, that mating might potentially up to two months before extrusion. 
+
+# Methods
+
+*B. latro* populations have been proposed to be, at least partially, structured by the distance to the shore [@Chauvet1999]. Therefore, two roughly parallel transects were established at different distances from the shore. A coastal transect was composed by `r loc_dist_g$n_sec[2]` lineal sections separated from the shore by distances ranging between `r ceiling(loc_dist_g$dist_shore_min[2])` and `r ceiling(loc_dist_g$dist_shore_max[2])`m from the shore, while an inshore transect was composed by `r loc_dist_g$n_sec[1]` lineal sections with distances ranging between `r ceiling(loc_dist_g$dist_shore_min[1])` and `r ceiling(loc_dist_g$dist_shore_max[1])`m. Coastal and inshore transects had total length of `r round(loc_dist_g$length[2]/1000, 1)` and `r round(loc_dist_g$length[1]/1000, 1)`km respectively while the length of sections within them ranged between `r round(loc_dist_g$sec_min[1])` and `r round(loc_dist_g$sec_max[2])`m. 
+
+Regular surveys in these two transects were performed simultaneously after sunset, roughly every two weeks between `r format(min(fi(ccc, !is.na(n_people))$date), "%B %Y")` and `r format(max(fi(ccc, !is.na(n_people))$date), "%B %Y")` (Supplementary Material). In each survey we recorded all individuals encountered within five meters of the mid transect line. For each encounter, we recorded the thoracic length, the sex, an estimate of the distance to the middle line, an index of pleonal (abdominal) expansion (see section below for details), and in the case of the females whether they were carrying eggs or not. In addition, *B. latro* behaviour has been hypothesised to be influenced by humidity and the phase of the moon [@Sato2009; @Drew2010]. Therefore, in each survey we recorded whether soil was moist (due to ongoing or previous rain) or not, and back calculated the phase of the moon during the survey using the R package `oce` [@Kelley2015]. The phase of the moon was defined as a continuous variable from zero to one, with both extremes corresponding to new moon, 1/4 for fist quarter, 1/2 for full moon, and 3/4 for last quarter [@meeus1982].
+
+## Data analysis
+
+### Population structure
+
+#### Density
+
+The density of *B. latro* during each survey was estimated using the hierarchical distance sampling model of @Royle2004 implemented in the R package `unmarked` [@Fiske2011]. Briefly, within each survey and each transects' lineal sections, we pooled the counts of encountered individuals in five distance categories: 0-1, 1-2, 2-3, 3-4, and 4-5m. We then used these counts to estimate the overall density during the survey and evaluated the impact that habitat composition had in both the detectability and abundance of *B. latro*.
+
+Habitat composition was obtained using high resolution satellite imagery (details? references?). In each transect section we calculated the percentage of area occupied by eight different habitat types that could affect *B. latro* detectability and/or abundance. In decreasing order of area occupied these habitats were: open mixed scrub, exposed surface, standard mixes scrub, grasses, mangrove, sand, pemphis—densely branched bushes formed primarily by short *Pemphis acidula* trees, and 'champignon'—an irregular coral limestone formation characteristic of Aldabra. To maximise differentiation between transect sites and reduce the dimensionality of the data, we then transformed the habitat composition percentages using a principal component analysis. Finally, we included the two components that explaining the largest proportion of the variance as covariates in our distance sampling model. Due to the large number of surveys, we used a fixed effects meta-analysis approach to ascertain the signifcance of the covariates. We determined a covariate to significantly affect detectability if its effect was be consistent over different surveys, and to significantly affect abundance if its effect was either consistent over surveys or variable but according to the seasons. In each survey, we used the Akaike information criterion (AIC) to determine whether our detection process was better approximated by a half-normal, a negative exponential, a hazard-rate, or an uniform distribution function.
+
+Next, we used a generalised additive model (GAM) to determine whether *B. latro* densities varied significantly *(i)* over the years, *(ii)* over the yearly cycle, and *(iii)* over the lunar cycle. Models were fitted using the R package `mgcv` [@wood2006], and the model parsimony was assessed by comparing their AIC values.
+
+Although distance sampling provides an accurate indication of the crab density, the analysis of abundance patterns at finer spatial and temporal scale is not straightforward. Therefore, we used direct counts to further investigate *B. latro* population dynamics. This was possible because initial analysis indicated that crab detectability did not change over time and was not influenced by habitat composition (see Results section and Supplementary Information for details) and consequently direct counts provide an accurate index of crab abundance. 
+
+As stated before, proximity to shore, phase of the moon, and environmental factors (which are strongly determined by the seasons in Aldabra) may have an effect on *B. latro* relative abundances. Moreover, these effects might be different for each sex due to different reproductive requirements. We therefore used a GAM to quantify the relative effect of the aforementioned variables on the counts of both male and female individuals. As it is plausible that environmental factors interact with habitat requirements, the tensor product interaction between day of the year and distance from shore was included in the model [@Wood2006]. 
+
+#### Sex ratio
+
+Sex ratios have been found to be strongly biased towards males in most studied *B. latro* populations [@Drew2010]. Sex rations were directly calculated from the individual counts. However, because of the potential relevance for reproduction, we also calculated the sex ratio that would be observed if only sexually mature individuals were included. Full sexual maturity was assumed based on individuals with a thoracic length smaller than 28mm [@Fletcher1990; @Sato2008]. In addition, we used the models developed for individual counts to infer the effects that time of the year, distance from shore, and phase of the moon may have on the sex ratio. 
+
+#### Size 
+
+Thoracic length is the most widely used body size parameter in *Birgus latro* allometry studies [@Amesbury1980; @Anagnostou2014]. Nevertheless, we confirmed the allometric relationship between thoracic length and weight in the Aldabra population. To do that we measured the thoracic length in `r sum(!is.na(cc$weight) & !is.na(cc$t_length))` individuals and used the power law *w = al^b^* to relate it with weight, where *l* is the thoracic length (in milimeters), *w* is the total weight (in grams), *a* corresponds to the proportionality coefficient, and *b* to the scaling exponent. The parameters *a* and *b* were calculated using an standardised major axis regression implemented in the R package `smatr` [@Warton2006; @Warton2012]. 
+
+Sexual dimorphism, with males being in average larger than females, appears to be a pervasive characteristic of *B. latro* populations. As we found thoracic length to be a good indicator for weight in the local population we used it as an indicator of size to determine the differences between males and females. The difference was evaluated by visually inspecting the size distribution for both sexes and a t-test on the length measurements. Furthermore, similar as for the counts, we used a set of GAMs to explore whether there were differences on the sizes of individuals encountered varied with respect to the distance from shore, the time of the year, or the lunar cycle. As before, competing models were compared using their AIC.
+
+### Pleonal expansion
+
+Pleonal (abdominal) expansion can be an indication of the moulting stage as recently moulted individuals will have a relatively small abdomen for its size and individuals with a very swollen abdomen are likely to moult in the near future. Recently, pleonal expansion has also been unambiguosly linked to the reproductive condition of females, as it can be indicative of gonad development [@Sato2009]. During each encounter we registered the degree of pleonal expansion using a four-level categorical scale. In this scale 1 was assigned to individuals in which all tergal plates are touching each other or there is only a small gap between the most posterior tergal plate (first plate) and the next (second plate). An index of 2 was assigned to those in which the pleon was slightly swollen and the fleshy abdomen is visible between the first and second plates, and somewhat visible between the second and third plate. An index of 3 was assigned if the pleon was swollen and the fleshy abdomen is clearly present between the first, second and third plates, and somewhat visible between the third and the fourth plate. Finally, an index of 4 indicates an strongly swollen pleon and the fleshy abdomen is visible between all tergal plates. 
+
+To understand whether there is evidence of synchronous seasonal moulting, and to provide insight into the onset of reproductive season, we constructed two GAMs, one for each sex, in which the response was the index of pleonal expansion (treated as a numeric variable) and the predictor was the time of the year. 
+
+### Reproduction
+
+To determine the reproductive season, we constructed a GAM with a binomial error distribution in which the response variable was whether a female was seen carrying eggs during a survey transect or not. This method was preferred to model the counts of ovigerous females because of the large proportion of zeroes. As we were mostly concerned with the timing of the reproduction, we included only time of the year and phase of the moon as response variables.
+
+### Segregation
+
+XXX
+
+# Results
+
+```{r effort, echo = F, message = F}
+s_per_month <- cc_m %>%
+  fi(!is.na(locality), area %in% c("CP", "BP")) %>%
+  mu(mon = cut(date, "month")) %>%
+  gr(mon) %>%
+  su(n = n_distinct(date)) %>% {
+    c(mean(.$n), sd(.$n))
+  }
+
+cccc <- cc %>% 
+  dplyr::inner_join(col_event) %>%
+  fi(!is.na(locality), area %in% c("CP", "BP"))
+```
+
+In total, `r n_distinct(ccc$date)` surveys were performed over the study period. Effort was held relatively constant and `r round(s_per_month[1], 1)` ± `r round(s_per_month[2], 2)` (mean ± sd) surveys were performed each month. This led to a total of `r nrow(cccc)` individual encounters. 
+
+### Population structure
+
+#### Density
+
+The two principal components of the habitat composition (which were included as covariates in our distance sampling models) explained `r round(sum(summary(pc)$importance[2, 1:2])*100)`% of the variance found among transect sections. The first component, was strongly correlated with an increase on the area covered by open mixed scrub, but mainly with a decrease on percentage of exposed surface. The second component, was largely correlated with an increase of grass and with a decrease of standard mixed scrub (Supplementary Information). These habitat differences, however, did not significantly affected the detectability or the abundances of *B. latro* (Supplementary Information). Overall, based on AIC values, the most parsimonious models were those fitting a negative exponential function to the detection process. 
+
+We found *B. latro* density in our study area to vary between `r round(min(m_d[[1]]$fitted.values + m_d[[1]]$residuals), 1)` and `r round(max(m_d[[1]]$fitted.values + m_d[[1]]$residuals), 1)` individuals per hectare, with an overall average density of `r round(c(m_d[[1]]$coefficients[1]), 1)` ± `r round(summary(m_d[[1]])$p.table[2], 2)` ind./ha (mean ± standard error). The overall density shows small variations over the years, but no long term trend is observable (Figure 1A). Similarly, we did not find a significant variation on density over the moon cycle (Supplementary Information). Contrastingly, we found important seasonal changes on abundance, being above average between February and June—with a clear peak on April, and below average for the rest of the year (Figure 1B). 
+
+```{r density_fig, echo = F, fig.width=7, fig.height = 2, fig.align = "center", dpi = 150}
+
+intercept_d <- c(m_d[[1]]$coefficients[1])
+
+pd1 <- extract_fit(m_d[[2]][[1]]) %>%
+  mu(fit = fit + intercept_d,
+     fitmin = fitmin + intercept_d,
+     fitmax = fitmax + intercept_d,
+     x = as.Date("2016-01-01") + x) %>%
+  ggplot(aes(x = x, y = fit)) +
+  # geom_point(data = m_d[[1]]$model, aes(y = density, x = as.Date("2016-01-01") + yday), size = 1, shape = 21, alpha = 0.5) + 
+  geom_hline(yintercept = intercept_d, linetype = 2, colour = "grey") +
+  geom_ribbon(aes(ymin = fitmin, ymax = fitmax), alpha = 0.25) +
+  geom_line() + 
+  scale_x_date(date_labels = "%b", expand = c(0,0), name = "month", date_breaks = "2 month") +
+  scale_y_continuous(limits = c(10,70), name = "crabs / hectare") +
+  th
+
+
+pd2 <- extract_fit(m_d[[2]][[2]]) %>%
+  mu(fit = fit + intercept_d,
+     fitmin = fitmin + intercept_d,
+     fitmax = fitmax + intercept_d,
+     x = as.Date("1970-01-01") + x) %>%
+  ggplot(aes(x = x, y = fit)) +
+  geom_hline(yintercept = intercept_d, linetype = 2, colour = "grey") +
+  # geom_point(data = m_d[[1]]$model, aes(y = density, x = as.Date("2016-01-01") + yday), size = 1, shape = 21, alpha = 0.5) + 
+  geom_ribbon(aes(ymin = fitmin, ymax = fitmax), alpha = 0.25) +
+  geom_line() + 
+  scale_x_date(expand = c(0,0), name = "date") +
+  scale_y_continuous(limits = c(10,70), name = "crabs / hectare") +
+  th
+
+cowplot::plot_grid(pd2, pd1, ncol = 2, align = "hv", labels = c("A.", "B."), label_size = 9)
+
+```
+
+*Figure 1. Birgus latro density over (A) the years and over (B) the yearly cycle. The solid lines show the values predicted by the GAM, while grey ribbons reprent the standard error.*
+
+```{r size-models, echo = F, fig.width = 3.5, fig.height=6, fig.align="center", message = F, warning=F}
+
+pl <- function(x){
+  x %>% ggplot(aes(x = x, y = y, fill = fit)) +
+  geom_tile() +
+  stat_contour(aes(z = fit), colour = "black") +
+    scale_x_date(date_labels = "%b", expand = c(0,0), name = "month", date_breaks = "2 month") +
+    scale_y_continuous(expand = c(0,0), name = "dist. to shore [m]")
+}
+
+
+
+# month
+
+# month
+intercept_s <- data.frame(sex = c("F", "M"),
+                        intercept = c(m_s[[1]][[1]]$coefficients[1],
+                                      m_s[[1]][[2]]$coefficients[1]))
+
+ds <- get_var_gam(m_s[[2]], 3) %>%
+  dplyr::inner_join(se(get_var_gam(m_s[[2]], 1, "x"), -3, -4)) %>%
+  dplyr::inner_join(se(get_var_gam(m_s[[2]], 2, "y"), -3, -4)) %>%
+  dplyr::inner_join(intercept_s) %>%
+  mu(fit = fit + month_fit + dist_shore_fit, 
+     fit = fit + intercept, 
+     x = as.Date("2016-01-01") + x) 
+
+ps1 <- ds %>% 
+  fi(sex == "M") %>%
+  pl() +
+  scale_fill_gradient2(high = "#e41a1c", low = "#377eb8", midpoint = (intercept_s$intercept[2]), name = "♂") + th
+
+ps2 <- ds %>% 
+  fi(sex == "F") %>%
+  pl() +
+  scale_fill_gradient2(high = "#e41a1c", low = "#377eb8", midpoint = (intercept_s$intercept[1]), name = "♀") + th
+
+
+##### moon
+
+fq <- grImport::readPicture("../external/FQ.xml") %>% grImport::pictureGrob()
+f <- grImport::readPicture("../external/F.xml") %>% grImport::pictureGrob()
+n <- grImport::readPicture("../external/N.xml") %>% grImport::pictureGrob()
+lq <- grImport::readPicture("../external/LQ.xml") %>% grImport::pictureGrob()
+
+s <- 0.25
+y <- 5
+ps3 <- get_var_gam(m_s[[2]], 4) %>%
+  dplyr::inner_join(intercept_s) %>%
+  dplyr::mutate(sex = plyr::mapvalues(sex, c("F", "M"), c("♀", "♂"))) %>%
+  ggplot(aes(x = x, y = fit, colour = sex)) +
+  geom_line() +
+  geom_ribbon(aes(ymax = fitmax, ymin = fitmin, fill = sex), alpha = 0.25) +
+  scale_fill_brewer(palette = "Set2", name = "") +
+  scale_color_brewer(palette = "Set2", name = "") +
+  scale_x_continuous(expand = c(0,0)) +
+  # annotation_custom(n, xmin = 0-s, xmax = 0+s, ymin = y -s, ymax = y+s) +
+  # annotation_custom(fq, xmin = 0.25-s, xmax = 0.25+s, ymin = y -s, ymax = y+s) +
+  # annotation_custom(f, xmin =0.5-s, xmax = 0.5+s, ymin = y-s, ymax = y + s) +
+  # annotation_custom(lq, xmin = 0.75-s, xmax = 0.75+s, ymin = y -s, ymax = y+s) +
+  # annotation_custom(n, xmin = 1-s, xmax = 1+s, ymin = y -s, ymax = y+s) + 
+  xlab("moon phase") + ylab("size deviation") + th
+# 
+# 
+# ps3 <- ggplot_gtable(ggplot_build(ps3))
+# ps3$layout$clip[ps3$layout$name == "panel"] <- "off"
+
+
+```
+
+```{r counts_model, echo = F, fig.width = 3.5, fig.height=6, fig.align="center", message = F, warning=F}
+
+# month
+intercept_c <- data.frame(sex = c("F", "M"),
+                        intercept = c(m_c[[1]][[1]]$coefficients[1],
+                                      m_c[[1]][[2]]$coefficients[1]))
+
+dc <- get_var_gam(m_c[[2]], 3) %>%
+  dplyr::inner_join(se(get_var_gam(m_c[[2]], 1, "x"), -3, -4)) %>%
+  dplyr::inner_join(se(get_var_gam(m_c[[2]], 2, "y"), -3, -4)) %>%
+  dplyr::inner_join(intercept_c) %>%
+  mu(fit = fit + month_fit + dist_shore_fit, 
+     fit = fit + intercept, 
+     fit = exp(fit),
+     x = as.Date("2016-01-01") + x) 
+
+pc1 <- dc %>% 
+  fi(sex == "M") %>%
+  pl() +
+  scale_fill_gradient2(high = "#e41a1c", low = "#377eb8", midpoint = exp(intercept_c$intercept[2]), name = "♂") + th
+
+pc2 <- dc %>% 
+  fi(sex == "F") %>%
+  pl() +
+  scale_fill_gradient2(high = "#e41a1c", low = "#377eb8", midpoint = exp(intercept_c$intercept[1]), name = "♀") + th
+
+
+#####
+
+fq <- grImport::readPicture("../external/FQ.xml") %>% grImport::pictureGrob()
+f <- grImport::readPicture("../external/F.xml") %>% grImport::pictureGrob()
+n <- grImport::readPicture("../external/N.xml") %>% grImport::pictureGrob()
+lq <- grImport::readPicture("../external/LQ.xml") %>% grImport::pictureGrob()
+
+
+# moon
+s <- 0.05
+y <- 0.12
+pc3 <- get_var_gam(m_c[[2]], 4) %>%
+  dplyr::inner_join(intercept_c) %>%
+  dplyr::mutate(fit = exp(fit + intercept) - exp(intercept) ,
+                fitmax = exp(fitmax + intercept) - exp(intercept),
+                fitmin = exp(fitmin + intercept) - exp(intercept),
+                sex = plyr::mapvalues(sex, c("F", "M"), c("♀", "♂"))) %>%
+  ggplot(aes(x = x, y = fit, colour = sex)) +
+  geom_line() +
+  geom_ribbon(aes(ymax = fitmax, ymin = fitmin, fill = sex), alpha = 0.25) +
+  scale_fill_brewer(palette = "Set2", name = "") +
+  scale_color_brewer(palette = "Set2", name = "") +
+  scale_x_continuous(expand = c(0,0)) +
+  # annotation_custom(n, xmin = 0-s, xmax = 0+s, ymin = y -s, ymax = y+s) +
+  # annotation_custom(fq, xmin = 0.25-s, xmax = 0.25+s, ymin = y -s, ymax = y+s) +
+  # annotation_custom(f, xmin =0.5-s, xmax = 0.5+s, ymin = y-s, ymax = y + s) +
+  # annotation_custom(lq, xmin = 0.75-s, xmax = 0.75+s, ymin = y -s, ymax = y+s) +
+  # annotation_custom(n, xmin = 1-s, xmax = 1+s, ymin = y -s, ymax = y+s) +
+  # scale_x_continuous(labels = rep("", 5)) +
+  xlab("moon phase") + ylab("count deviation") + th
+# 
+# pc3 <- ggplot_gtable(ggplot_build(pc3))
+# pc3$layout$clip[pc3$layout$name == "panel"] <- "off"
+
+```
+
+We found that the number of males and females encountered is strongly affected by the time of the year and the distance from shore. In general, male counts in each transect section seem to be the largest during the first half of the year. Within that period, between March-April, males concentrate afar from shore (Figure 2A). During the same period, when inshore counts are high for males, female counts are higher close to shore. In contrast, during the second half of the year when male counts are the lowest, female counts are at the highest both in coastal and inshore sections, particularly between October and November (Figure 2A).
+
+```{r countour_fig, echo = F, fig.width = 7, fig.height=4, fig.align="center", message = F, warning=F, dpi = 150}
+cowplot::plot_grid(switch_axis_position(pc1 + ggtitle("A. COUNTS"), "x"), 
+                   switch_axis_position(ps1 + ggtitle("B. SIZE"), "xy"), 
+                   pc2, 
+                   switch_axis_position(ps2, "y"),
+                   ncol = 2,
+                   rel_heights = c(1.1, 1, 1))
+```
+
+*Figure 2: Contour plots of the effect of time of the year and distance from shore on A) the counts and B) the size of both males (top panels) and females (bottom panels). In all panels, shades of red and blue indicate values larger and smaller than the average, respectively.*
+
+Although moon phase did not affect the overall *B. latro* densities, it had distinct and complementary effects on males and females (Figure 3A). While female counts are the largest during periods of full moon, males are encountered in higher densities during new moon when the illuminated fraction of the moon at its minimum.
+
+```{r moon_fig, echo = F, fig.width = 3.5, fig.height=4, fig.align="center", message = F, warning=F, dpi = 150}
+plot_grid(pc3, ps3, ncol = 1, align = "v", labels = c("A.", "B."), label_size = 9)
+```
+
+*Figure 3: effect of the phase of the moon on A) the count and B) the size of encountered females (green) and males (orange). The y-axes show the effect on the mean counts (`r round(exp(intercept_c$intercept)[1], 2)` females and `r round(exp(intercept_c$intercept)[2], 2)` males) or the mean sizes (`r round(intercept_s$intercept[1], 1)`mm thoracic length for females and `r round(intercept_s$intercept[2], 1)`mm for males) per transect section. The solid lines shows the values predicted by the GAM, gray while ribbons represents the standard error. The phase of the moon is defined as 0 and 1 for new moon, 0.25 for fist quarter, 0.5 for full moon, and 0.75 for last quarter [@meeus1982]*
+
+In contrast, females are more likely to be encountered during the second half of the year (Figure 2A). Furthermore, while male counts peak far from shore during March-April, female counts are generally higher close to shore
+
+#### Sex ratio
+
+```{r sex_ratio, echo = F}
+# overall sex ratio
+total_sr <- cc_m %>%
+  dplyr::filter(!is.na(sex)) %$%
+  table(sex) 
+#adult sex ratio
+total_sr_a <- cc_m %>%
+  dplyr::filter(!is.na(sex), t_length > 28) %$%
+  table(sex)
+
+# max and min ratio
+
+nd <- expand.grid(month = 1:365, moon_ph = c(0, 0.5), dist_shore_l = as.numeric(c(T, F))) 
+
+nd %<>% 
+  mu(ratio = predict(m_r[[1]], newdata = .)) 
+
+```
+
+We found an overall ratio males:females of 1:`r round(total_sr[1]/total_sr[2], 2)` (`r round(total_sr[2]/sum(total_sr)*100)`% male), which increases to 1:`r round(total_sr_a[1]/total_sr_a[2], 2)` (`r round(total_sr_a[2]/sum(total_sr_a)*100)`% male) if only sexually mature individuals are included. As inferred by the count models this ratio, however, shows significant temporal and spatial variation, ranging between `r round(plogis(min(nd$ratio))*100)`% of individuals encountered being male during November in areas close to shore and `r round(plogis(max(nd$ratio))*100)`% during March in areas far from shore.
+
+#### Size
+
+We found that indeed thoracic length and weight follow an allometric relationship. The standardised major axis estimated *a* = `r round(10^lw_m$coef[[1]][, 1][1], 4)` [`r round(10^lw_m$coef[[1]][, 2][1], 4)`, `r round(10^lw_m$coef[[1]][, 3][1], 4)`] (95% confidence interval) and *b* = `r round(lw_m$coef[[1]][, 1][2], 3)` [`r round(lw_m$coef[[1]][, 2][2], 3)`, `r round(lw_m$coef[[1]][, 3][2], 3)`]. The *R^2^* value for the relationship was `r round(lw_m$r2[[1]],2)`. This high degree of correlation indicates that thoracic length can be adequately use to describe the size of *B. latro* in Aldabra.
+
+```{r length_weight, eval = F, echo = FALSE, warning = F, message = F, fig.height=2, fig.width=3.4, fig.align="center", dpi = 150}
+
+lw_pred <- dplyr::data_frame(
+  t_length = min(10^lw_m$data$t_length):max(10^lw_m$data$t_length),
+  c_weight = (10^(lw_m$coef[[1]][, 1][1]))*(t_length^lw_m$coef[[1]][, 1][2]),
+  c_weight_u = (10^(lw_m$coef[[1]][, 3][1]))*(t_length^lw_m$coef[[1]][, 3][2]),
+  c_weight_l = (10^(lw_m$coef[[1]][, 2][1]))*(t_length^lw_m$coef[[1]][, 2][2]))
+
+lw_m$data %>%
+  ggplot(aes(x = t_length, y = c_weight)) +
+  geom_point(aes(x = 10^t_length, y = 10^c_weight), 
+             shape = 21, colour = "grey50", size = 1) +
+  geom_line(data = lw_pred, size = 1) +
+  geom_line(data = lw_pred, aes(y = c_weight_u),
+            linetype = 2) +
+  geom_line(data = lw_pred, aes(y = c_weight_l),
+            linetype = 2) +
+  scale_color_brewer(palette = "Set1") +
+  theme_bw() +
+  theme(axis.title = element_text(size = 10)) + 
+  xlab("thoracic length [milimeters]") + ylab("weight [gramms]") +
+  scale_x_log10(breaks = seq(20, 80, 10)) + scale_y_log10(breaks = c(50, 100, 200, 500, 1000, 2000))
+```
+
+```{r size_dist, echo = F, fig.width=3.5, fig.height = 3, fig.align = "center"}
+l_sex <- cc_m %>%
+  dplyr::filter(!is.na(sex)) %>%
+  dplyr::group_by(sex) %>%
+  dplyr::summarise(mean_l = mean(t_length, na.rm = T),
+                   min_l = min(t_length, na.rm = T),
+                   max_l = max(t_length, na.rm = T))
+```
+
+Marked sexual dimorphism was observed (Figure 4). Overall, males were found to be larger than females: male thoracic length, ranged from `r round(l_sex$min_l[2])` to `r round(l_sex$max_l[2])`mm (mean `r round(l_sex$mean_l[2],1)`mm), while female ranged from `r round(l_sex$min_l[1])` to `r round(l_sex$max_l[1])`mm (mean `r round(l_sex$mean_l[1],1)`mm). In addition, mean size, of both male an female individuals encountered, showed two distinct peaks during the year, one between October and December, and another more pronounced between March and May (Figure 2B). We also found mean sizes to be affected by the distance to shore. In general, females encountered close to shore were generally larger than those encountered inland. On the other hand, males found away from the coast were substantially larger than those encountered close to shore. However, this difference on male size between coastal and inshore habitats becomes inconspicuous on December and January and from June to August (Figure 2B). In addition, the size of males encountered close to new moon was significantly larger than that of males encountered close to new moon. In contrast, the size of encountered females showed no variation over the moon cycle (Figure 3B). 
+
+```{r fig_size_dist, echo = F, fig.width = 3.5, fig.height=2.5, fig.align="center", message = F, warning=F, dpi = 150}
+
+p1 <- cc_m %>%
+  se(sex, t_length) %>%
+  fi(!is.na(sex)) %>%
+  tidyr::spread(sex, t_length) %>%
+  ggplot() +
+  geom_density(aes(x = male), alpha = 0.25, fill = "#fc8d62") +
+  geom_density(aes(x = female, y = -(..density..)), alpha = 0.25, fill = "#66c2a5") +
+  geom_density(aes(x = male)) +
+  geom_density(aes(x = female, y = -(..density..))) +
+  # geom_vline(data = mean_length_sex, 
+             # aes(xintercept = t_length, colour = sex), 
+             # linetype = 2) + 
+  theme_bw() +
+  scale_color_brewer(palette = "Set2") +
+  scale_fill_brewer(palette = "Set2") +
+  scale_x_continuous(name = "thoracic length [mm]") +
+  theme(legend.position = "none", 
+        text = element_text(size = 9),
+        # axis.title.x = element_blank(),
+        axis.ticks.x = element_blank(),
+        axis.text.x = element_blank(),
+        # legend.title = element_text(size = 10),
+        plot.margin = grid::unit(c(0.4,0.1,0.15,0.15), "lines")) +
+  coord_flip()
+
+
+p2 <- cc_m %>%
+  dplyr::filter(!is.na(sex)) %>%
+  ggplot(aes(x = sex, y = t_length)) +
+  geom_boxplot(aes(fill = sex), 
+               alpha = 0.25, outlier.size = 1, 
+               outlier.shape = 21, size = 0.3) +
+  geom_boxplot(aes(fill = sex), 
+               fill = "transparent", 
+               outlier.size = 1, 
+               outlier.shape = 21, size = 0.5) +
+  theme_bw() +
+  scale_x_discrete(labels = c("♀", "♂")) +
+  scale_color_brewer(palette = "Set2") +
+  scale_fill_brewer(palette = "Set2") +
+  theme(legend.position = "none", 
+        text = element_text(size = 9),
+        axis.text.x = element_text(size = 14),
+        # axis.title.y = element_blank(),
+        # axis.ticks.y = element_blank(),
+        # axis.text.y = element_blank(),
+        plot.margin = grid::unit(c(0.4,0.4,-0.7,0.1), "lines")) +
+  ylab("thoracic length [mm]") + xlab("")
+
+cowplot::plot_grid(p1, switch_axis_position(p2, "y"), ncol = 2, rel_widths = c(2, 1.5))
+
+cc_m %>% group_by(sex) %>% 
+	mutate(top25 = quantile(length, 0.9, na.rm = T), n = n(),
+				 median = median(length, na.rm = T)) %>% 
+	filter(!is.na(sex),
+				 length >= top25
+				 ) %>% 
+	# summarise(n = n()) %>% View
+	wilcox.test(length ~ sex, data = ., alternative = "greater") %>% str
+
+ ```
+
+*Figure 4: Size distribution of Birgus Lastro in Aldabra. Green and orange female and male individuals respectively.*
+
+### Pleonal expansion
+
+We found that males over 30mm have exhibit a yearly cycle regarding the size of their pleon, with a clear peak on April-May (Figure 5). In contrast, females encountered on November have the largest pleon. In addition, females show an additional less conspicuous peak of pleon expansion between May and July (Figure 5).
+
+```{r fig_moulting , echo = FALSE, warning = F, message = F, fig.height=2, fig.width=3.4, fig.align="center", dpi = 150}
+get_var_gam(m_m[[2]], 1)  %>%
+  dplyr::mutate(x = as.Date("2016-01-01") + x,
+                sex = plyr::mapvalues(sex, c("F", "M"), c("♀", "♂"))) %>%
+  ggplot(aes(x = x, y = fit)) +
+  geom_ribbon(aes(ymax = fitmax, ymin = fitmin, fill = sex), alpha = 0.25) +
+  geom_line(aes(colour = sex)) +
+  scale_x_date(date_labels = "%b", name = "month", date_breaks = "2 month", expand = c(0,0)) +
+  # scale_y_continuous(name = "probability", expand = c(0,0), limits = c(-0.4, 0.4)) +
+  scale_color_manual(values = c("#66c2a5", "#fc8d62"), name = "") +
+  scale_fill_manual(values = c("#66c2a5", "#fc8d62"), name = "") + 
+  scale_linetype_manual(values = c(2, 1), name = "moon\nphase") + 
+  ylab("pleonal index deviation") +
+  th
+```
+
+*Figure 5: Effect of time of the year on the mean pleon size for females (green) and males (orange). Pleon size was estimated using an index between 1 and 4. An index of 1 indicates that all tergal plates are touching each other of there is only a small gap between the most posterior tergal plate and the next. An index of 4 indicates an strongly swollen abdomen and all tergal plates are divided by thick gaps.*
+
+### Reproduction
+
+```{r egg, echo = F}
+egg <- cc %>%
+  dplyr::filter(sex == "female") %>%
+  dplyr::mutate(egg = grepl("gg", comments) & !grepl("Dragging", comments))
+
+egg_ev <- cc %>%
+  dplyr::filter(sex == "female") %>%
+  dplyr::mutate(egg = grepl("gg", comments) & !grepl("Dragging", comments)) %>%
+  dplyr::group_by(col_id) %>%
+  dplyr::summarise(egg = any(egg)) 
+```
+
+During the monitoring period, few females (`r nrow(dplyr::filter(egg, egg))` out of `r nrow(egg)` individuals in `r nrow(dplyr::filter(egg_ev, egg))` out of `r nrow(egg_ev)` transect surveys) were ovigerous. Nevertheless, these observations consistently pointed out to a reproductive season between December and March with an increased probability to encounter females carrying eggs just before new moon (Figure 6).
+
+```{r egg_model, echo = F, warning = F, message = F, fig.width = 3.5, fig.height = 2.4, fig.align = "center", dpi = 150}
+intercept <- m_e[[1]]$coefficients[1]
+expand.grid(moon_ph_fit = c(0, range(extract_fit(m_e[[2]][[2]])$fit)),
+            x = extract_fit(m_e[[2]][[1]])$x) %>%
+  dplyr::full_join(extract_fit(m_e[[2]][[1]])) %>% 
+  dplyr::inner_join(dplyr::select(extract_fit(m_e[[2]][[2]], "moon_ph"), -3, -4)) %>%
+  dplyr::mutate(fit = plogis(intercept + fit + moon_ph_fit), 
+                fitmin = plogis(intercept + fitmin), 
+                fitmax = plogis(intercept + fitmax),
+                x = as.Date("2016-01-01") + x) %>%
+  ggplot(aes(x = x, y = fit)) +
+  geom_ribbon(aes(ymax = fitmax, ymin = fitmin), alpha = 0.25) +
+  geom_line(aes(linetype = as.factor(round(moon_ph, 2)))) +
+  scale_x_date(date_labels = "%b", name = "month", date_breaks = "2 month", expand = c(0,0)) +
+  scale_y_continuous(name = "probability", expand = c(0,0), lim = c(0,1)) +
+  scale_linetype_manual(values = c(2, 1), name = "moon\nphase") + 
+  theme_bw() +
+  theme(strip.background = element_blank(),
+        # plot.margin = grid::unit(c(0,-0.7, 0.4, 0.4), "lines"),
+        text = element_text(size = 9), 
+        legend.position = "top")
+
+
+```
+
+*Figure 6: Probability of encountering an ovigerous female during a survey. The solid line and dashed line correspond to the maximum and minimum encounter probability during the moon cycle respectively. A moon phase of 0.41 corresponds to about three days before full moon and 0.94 to around two days before new moon [@meeus1982]. Grey ribbon indicates confidence interval of the mean probability across the year.*
+
+### Segregation
+
+XXX
+
+# Conclusions & recommendations
+
+Despite limitations on the design of the surveys, the long term monitoring of _Birgus latro_ on Picard has provided fundamental insight into the ecology of this species. Nevertheless, apart from the long term recording of local densities, continuing this monitoring on its current form is not recommended as it unlikely to offer additional insight. Therefore, it's suggested to redesign the monitoring so that field methods for the obtention of population parameters pertinent to adaptive management are optimised. 
+
+The fully protected status of _B. latro_ in Aldabra, makes it possible to simplify management tasks, as improved understanding of its ecology, although highly desirable, is not imperative. However, SIF and its infrastructure in Aldabra, perhaps the last sanctuary for this species worldwide, is in a privileged position to unravel long held questions of this species. Answering these questions can provide potentially important lessons for other managed and unmanaged populations elsewhere. Although some of these questions are likely to require dedicated efforts and resources, others can be attempted to be answered while fulfilling SIF's core mission. Specifically, in order of priority, I provide the following recommendations (open to discussion, please):
+
+1. **Survey continuity: to perform three to six surveys a year for _B. latro_ in the Coastal and Back Path transects following a close version of the current protocol**.  This monitoring, to my knowledge, has provided the longest continuously recorded data set available on _B. latro_ counts. It is important to provide continuity to the long term monitoring that has been consistently ongoing since 2007. To that aim, I suggest to perform three to six surveys a year for _B. latro_ in the Coastal and Back Path transects following a close version of the current protocol. These surveys are to take place once (or possibly twice) a year. The timing for this targeted monitoring should ideally take place sometime between January and mid-February or (and) between mid-late May and late June, early July. As crab density during these periods has been found to be close to the yearly mean, estimates from those surveys will be directly comparable. Nevertheless, it is also possible to choose another arbitrary period of the year, or to spread the surveys over the year. If that is the case, some simple statistical considerations will be necessary.
+
+2. **Population sizes: to perform yearly distance sampling surveys in different habitats/islands to estimate relative abundances. If resources are available, to perform bi-annual PIT mark-recapture studies instead to estimate total population size.** The extreme spatial and temporal variability of _B. latro_ counts, and its highly cryptic behaviour, which renders then unavailable for surveys during long periods poses serious difficulties to any accurate estimation of their abundance in Aldabra. Distance sampling methods, like the one currently used, would be unable to provide accurate estimates for total population, but will be useful at providing lower bounds for the population, and relative abundances. These relative abundances can be useful when comparing different islands/habitats in Aldabra. Such estimation will require a careful stratified survey design and should ideally be performed during the same period in all localities. Mark-recapture methods, which are more likely to provide accurate abundance estimates, are not exempt of difficulties. This was attempted in the past by Dr. Pierre Pistorius in 2006-2007 in Picard. I have been unable to find a clean and complete version of this dataset and my accounts can be therefore incorrect. He used external marks with pens and was able to tag around 470 individuals. Around 90 of those were recaptured, however most of them only once. As in other mark-recapture attempts studies elsewhere, recapture rates were low and probably would have been unable to render accurate estimates, if an analysis were to be attempted. This is probably a consequence, again, of the cryptic nature of _B. latro_ but also from the fact that marks were lost during moult. If mark-recapture surveys were to be attempted a large number of implantable PIT tags should be used, and surveys should be ideally take place in March and November, the male and female peak times of activity, respectively. Mark-recapture has the added benefit that could be used to answer a wide range of ecological questions related to reproduction, movements, resource competition, moulting, and animal interactions.
+
+3. **Field methods:** To stop replace the subjective categories of pleonal expansion from 1-4 and instead measure it by using the "index of pleonal expansion" [@Sato2009]. Which is calculated from the formula $PE = \frac{A + B}{TL}$, where *A* is the distance between the second and third tergal plates, and *B* the distance between the third and fourth tergal plates measured with Vernier callipers.
+
+4. **Reproduction:** Very few accounts _B. latro_ mating, egg extrusion, and spawning have been ever observed. Dedicated observations during the reproductive season, particularly in periods of new moon, could resolve some of the mysteries involving coconut crab reproduction. 
+
+# References
