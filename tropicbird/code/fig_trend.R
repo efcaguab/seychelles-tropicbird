@@ -48,21 +48,27 @@ islet_fits %<>%
 denis <- readRDS(file = '../data/processed/denis.rds') %>%
 	dplyr::mutate(location2 = location)
 
-pm <- ggplot(mean_fits, aes(var, exp(fit), colour = spp_name, fill = spp_name, linetype = location)) +
+mean_fits_wt <- mean_fits %>%
+	filter(spp_name == "White-tail tropicbird",
+				 location != "Denis") 
+
+pm <- ggplot(mean_fits_wt, aes(x = var)) +
 	# geom_line(aes(group = islet), size = 0.25, alpha = 1, show.legend = F) +
-	geom_line(data = mean_fits, aes(y = exp(fit)), 
+	geom_line(aes(y = exp(fit),linetype = location), 
 						size = 0.5, alpha = 1, show.legend = T) +
-	geom_ribbon(data = mean_fits, aes(ymin = exp(fit-se), ymax = exp(fit+se)),
+	geom_ribbon(aes(ymin = exp(fit-se), ymax = exp(fit+se), group = location),
 							colour = 'transparent', alpha = 0.2) +
-	geom_point(data = denis, aes(x = date, y = n_new_nest), shape = 2) +
+	geom_point(data = denis, aes(x = date_mean, y = n_new_nest_mean), shape = 2) +
+	geom_errorbar(data = denis, aes(x = date_mean, ymin = n_new_nest_mean - n_new_nest_sd, ymax = n_new_nest_mean + n_new_nest_sd), 
+								linetype = 1) +
 	# facet_wrap(~spp_name, scales = 'free', ncol = 2) +
 	scale_x_datetime(name = '', expand = c(0,0)) +
-	scale_y_continuous(name = 'new nests (month)') +
-	scale_colour_brewer(palette = 'Set1', name = "", guide = guide_legend(title = NULL, direction = 'horizontal')) +
-	scale_fill_brewer(palette = 'Set1', name = "", guide = guide_legend(title = NULL, direction = 'horizontal')) +
+	scale_y_continuous(name = 'nest density\n(new nests / month)') +
+	# coord_cartesian(ylim = c(0, 25)) +
+	# scale_colour_brewer(palette = 'Set1', name = "", guide = guide_legend(title = NULL, direction = 'horizontal')) +
+	# scale_fill_brewer(palette = 'Set1', name = "", guide = guide_legend(title = NULL, direction = 'horizontal')) +
 	scale_linetype_manual(name = "", guide = guide_legend(title = NULL, direction = 'horizontal'), values = c(1,2,3,4)) +
-	theme_fe +
-	theme(legend.position = 'none')
+	theme_fe 
 
 pm
 
@@ -165,38 +171,48 @@ cousin_succ <- readRDS(file = '../data/processed/cousin-success.rds') %>%
 	dplyr::filter(date > as.POSIXct("2000-01-01")) %>%
 	dplyr::mutate(location2 = location) 
 
-pmsf <- ggplot(mean_fits, aes(var, colour = spp_name, fill = spp_name)) +
+mean_fits_wt <- mean_fits %>%
+	filter(spp_name == "White-tail tropicbird")
+pmsf <- ggplot(mean_fits_wt, aes(var)) +
 	# geom_line(aes(group = islet), size = 0.25, alpha = 1, show.legend = F) +
-	geom_line(data = mean_fits, aes(y = plogis(fit), linetype = location), 
+	geom_line(data = mean_fits_wt, aes(y = plogis(fit), linetype = location), 
 						size = 0.5, alpha = 1, show.legend = T) +
-	geom_ribbon(data = mean_fits, aes(ymin = plogis(fit-se), ymax = plogis(fit+se), linetype = location),
+	geom_ribbon(data = mean_fits_wt, aes(ymin = plogis(fit-se), ymax = plogis(fit+se), linetype = location),
 							colour = 'transparent', alpha = 0.2) +
 	# facet_wrap(~spp_name, scales = 'free', ncol = 2) +
 	# geom_line(data = cousin_succ, aes(x = date, y = p_fledged/100, linetype = location)) +
 	geom_point(data = cousin_succ, aes(x = date, y = p_fledged/100, shape = location2)) +
-	geom_point(data = denis, aes(x = date, y = p_fledged, shape = location2)) +
+	geom_point(data = denis, aes(x = date_mean, y = p_fledged_mean, shape = location2)) +
+	geom_errorbar(data = denis, aes(x = date_mean, ymin = p_fledged_mean - p_fledged_sd, ymax = p_fledged_mean + p_fledged_sd)) +
 	scale_colour_brewer(palette = 'Set1', name = "", guide = guide_legend(title = NULL, direction = 'horizontal')) +
 	scale_fill_brewer(palette = 'Set1', name = "", guide = guide_legend(title = NULL, direction = 'horizontal')) +
-	scale_shape_manual(values = c(1,2), name = "", guide = guide_legend(title = NULL, direction = 'horizontal')) +
-	scale_linetype_manual(name = "", guide = guide_legend(title = NULL, direction = 'horizontal'), values = c(1,2,3,4)) +
-	scale_x_datetime(name = '', expand = c(0,0)) + 
-	scale_y_continuous(name = 'fledging success', labels = scales::percent) + 
+	scale_shape_manual(values = c(3,2), name = "", guide = guide_legend(title = NULL, direction = 'horizontal')) +
+	scale_linetype_manual(name = "", guide = FALSE, values = c(1,2,3,4)) +
+	# scale_linetype_manual(name = "", guide = FALSE) +
+		scale_x_datetime(name = '', expand = c(0,0)) + 
+	scale_y_continuous(name = 'breeding success', labels = scales::percent) + 
 	theme_fe +
+	# guides(linetype = guide_legend(direction = "horizontal", order = 1)) +
 	theme(legend.position = 'top', legend.direction = 'vertical', legend.box = "vertical", 
 				legend.margin = margin(), 
 				legend.box.margin = margin())
 
 pmsf
 
-grobs <- ggplotGrob(pmsf)$grobs
-legend <- grobs[[which(sapply(grobs, function(x) x$name) == "guide-box")]]
-
-s <- cowplot::plot_grid(pm, 
-												pmsf + theme(legend.position = "none"), ncol = 1, 
+legend_points <- cowplot::get_legend(pmsf)
+legend_lines <- cowplot::get_legend(pm)
+plots <- cowplot::plot_grid(pmsf + theme(legend.position = "none"), 
+												pm + theme(legend.position = "none"), ncol = 1, 
 												labels = c("A", "B"), label_size = 8, 
 												rel_heights = c(1, 1), 
 												align = "hv")
-s <- cowplot::plot_grid(legend, s, rel_heights = c(0.4, 1), ncol = 1)
-pdf("../figs/trend-all-locations.pdf", width = 3.5, height = 5)
+leg <- cowplot::plot_grid(legend_lines, legend_points, ncol = 2, rel_widths = c(1,0.5))
+leg
+
+s <- cowplot::plot_grid(leg, plots, rel_heights = c(0.05, 0.95), ncol = 1)
 s
-dev.off()
+
+cowplot::save_plot("../figs/trend-all-locations.pdf", s, base_height = NULL, base_width = 3.5, base_aspect_ratio = 1/1.2)
+# pdf(, width = 3.5, height = 5)
+# s
+# dev.off()
