@@ -1,7 +1,7 @@
-aride <- read.csv('../data/raw/aride.csv')
-cousine <- read.csv('../data/raw/cousine.csv')
-cousin <- read.csv('../data/raw/cousin.csv')
-denis <- read.csv('../data/raw/denis.csv')
+aride <- read.csv('data/raw/aride.csv')
+cousine <- read.csv('data/raw/cousine.csv')
+cousin <- read.csv('data/raw/cousin.csv')
+denis <- read.csv('data/raw/denis.csv')
 
 library(magrittr)
 
@@ -27,9 +27,9 @@ aride %<>%
 	dplyr::mutate(location = "Aride", 
 								spp_name = "White-tail tropicbird")
 
-saveRDS(cousine, file = '../data/processed/cousine.rds',
+saveRDS(cousine, file = 'data/processed/cousine.rds',
 				compress = F, ascii = T)
-saveRDS(aride, file = '../data/processed/aride.rds',
+saveRDS(aride, file = 'data/processed/aride.rds',
 				compress = F, ascii = T)
 
 cousin %<>% 
@@ -40,7 +40,7 @@ cousin %<>%
 	dplyr::mutate(location = "Cousin",
 								spp_name = "White-tail tropicbird")
 
-saveRDS(cousin, file = '../data/processed/cousin-success.rds', 
+saveRDS(cousin, file = 'data/processed/cousin-success.rds', 
 				compress = F, ascii = T)
 
 denis %<>%
@@ -50,9 +50,9 @@ denis %<>%
 	dplyr::rename(n_fledged = Fledged) %>%
 	dplyr::select(date, n_new_nest, n_fledged) %>%
 	dplyr::mutate(p_fledged = n_fledged/n_new_nest) %>%
-	dplyr::summarise_all(mean) %>%
+	# dplyr::summarise_all(mean) %>%
 	dplyr::mutate(location = "Denis",
 								spp_name = "White-tail tropicbird")
 
-saveRDS(denis, file = '../data/processed/denis.rds')
+saveRDS(denis, file = 'data/processed/denis.rds')
 	

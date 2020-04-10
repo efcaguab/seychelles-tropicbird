@@ -5,7 +5,7 @@ library(dplyr)
 source("./functions.R")
 source("./plot_helper.R")
 
-nest_mod <- readRDS('../data/processed/new_nest_models.rds')
+nest_mod <- readRDS('data/processed/new_nest_models.rds')
 library(mgcv)
 
 # generate plot data for the islets
@@ -45,8 +45,14 @@ mean_fits %<>%
 islet_fits %<>%
 	mu(var = as.POSIXct(var, origin = "1970-01-01", tz = "Indian/Mahe") )
 
-denis <- readRDS(file = '../data/processed/denis.rds') %>%
-	dplyr::mutate(location2 = location)
+denis <- readRDS(file = 'data/processed/denis.rds') %>%
+	dplyr::group_by(location) %>%
+	dplyr::summarise(n_new_nest_sd = sd(n_new_nest),
+									 n_new_nest = mean(n_new_nest),  
+									 date = mean(date),
+									 p_fledged_mean = mean(p_fledged), 
+									 p_fledged_sd = sd(p_fledged)) %>%
+	dplyr::mutate(location2 = location) 
 
 mean_fits_wt <- mean_fits %>%
 	filter(spp_name == "White-tail tropicbird",
@@ -58,12 +64,12 @@ pm <- ggplot(mean_fits_wt, aes(x = var)) +
 						size = 0.5, alpha = 1, show.legend = T) +
 	geom_ribbon(aes(ymin = exp(fit-se), ymax = exp(fit+se), group = location),
 							colour = 'transparent', alpha = 0.2) +
-	geom_point(data = denis, aes(x = date_mean, y = n_new_nest_mean), shape = 2) +
-	geom_errorbar(data = denis, aes(x = date_mean, ymin = n_new_nest_mean - n_new_nest_sd, ymax = n_new_nest_mean + n_new_nest_sd), 
+	geom_point(data = denis, aes(x = date, y = n_new_nest), shape = 2) +
+	geom_errorbar(data = denis, aes(x = date, ymin = n_new_nest - n_new_nest_sd, ymax = n_new_nest + n_new_nest_sd),
 								linetype = 1) +
 	# facet_wrap(~spp_name, scales = 'free', ncol = 2) +
 	scale_x_datetime(name = '', expand = c(0,0)) +
-	scale_y_continuous(name = 'nest density\n(new nests / month)') +
+	scale_y_continuous(name = 'nest activity\n(new nests / month)') +
 	# coord_cartesian(ylim = c(0, 25)) +
 	# scale_colour_brewer(palette = 'Set1', name = "", guide = guide_legend(title = NULL, direction = 'horizontal')) +
 	# scale_fill_brewer(palette = 'Set1', name = "", guide = guide_legend(title = NULL, direction = 'horizontal')) +
@@ -74,7 +80,7 @@ pm
 
 
 
-nest_mod <- readRDS('../data/processed/hatching_success_models.rds')
+nest_mod <- readRDS('data/processed/hatching_success_models.rds')
 library(mgcv)
 
 # generate plot data for the islets
@@ -128,7 +134,7 @@ pms <- ggplot(mean_fits, aes(var, colour = spp_name, fill = spp_name)) +
 
 
 
-nest_mod <- readRDS('../data/processed/fledging_success_models.rds')
+nest_mod <- readRDS('data/processed/fledging_success_models.rds')
 library(mgcv)
 
 # generate plot data for the islets
@@ -167,12 +173,13 @@ mean_fits %<>%
 islet_fits %<>%
 	mu(var = as.POSIXct(var, origin = "1970-01-01", tz = "Indian/Mahe") )
 
-cousin_succ <- readRDS(file = '../data/processed/cousin-success.rds') %>%
+cousin_succ <- readRDS(file = 'data/processed/cousin-success.rds') %>%
 	dplyr::filter(date > as.POSIXct("2000-01-01")) %>%
 	dplyr::mutate(location2 = location) 
 
 mean_fits_wt <- mean_fits %>%
 	filter(spp_name == "White-tail tropicbird")
+
 pmsf <- ggplot(mean_fits_wt, aes(var)) +
 	# geom_line(aes(group = islet), size = 0.25, alpha = 1, show.legend = F) +
 	geom_line(data = mean_fits_wt, aes(y = plogis(fit), linetype = location), 
@@ -182,8 +189,8 @@ pmsf <- ggplot(mean_fits_wt, aes(var)) +
 	# facet_wrap(~spp_name, scales = 'free', ncol = 2) +
 	# geom_line(data = cousin_succ, aes(x = date, y = p_fledged/100, linetype = location)) +
 	geom_point(data = cousin_succ, aes(x = date, y = p_fledged/100, shape = location2)) +
-	geom_point(data = denis, aes(x = date_mean, y = p_fledged_mean, shape = location2)) +
-	geom_errorbar(data = denis, aes(x = date_mean, ymin = p_fledged_mean - p_fledged_sd, ymax = p_fledged_mean + p_fledged_sd)) +
+	geom_point(data = denis, aes(x = date, y = p_fledged_mean, shape = location2)) +
+	geom_errorbar(data = denis, aes(x = date, ymin = p_fledged_mean - p_fledged_sd, ymax = p_fledged_mean + p_fledged_sd)) +
 	scale_colour_brewer(palette = 'Set1', name = "", guide = guide_legend(title = NULL, direction = 'horizontal')) +
 	scale_fill_brewer(palette = 'Set1', name = "", guide = guide_legend(title = NULL, direction = 'horizontal')) +
 	scale_shape_manual(values = c(3,2), name = "", guide = guide_legend(title = NULL, direction = 'horizontal')) +
@@ -212,7 +219,7 @@ leg
 s <- cowplot::plot_grid(leg, plots, rel_heights = c(0.05, 0.95), ncol = 1)
 s
 
-cowplot::save_plot("../figs/trend-all-locations.pdf", s, base_height = NULL, base_width = 3.5, base_aspect_ratio = 1/1.2)
+cowplot::save_plot("figs/trend-all-locations.pdf", s, base_height = NULL, base_width = 3.5, base_aspect_ratio = 1/1.2)
 # pdf(, width = 3.5, height = 5)
 # s
 # dev.off()
