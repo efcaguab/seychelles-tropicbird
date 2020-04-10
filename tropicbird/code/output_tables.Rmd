@@ -1,0 +1,39 @@
+---
+title: "ot"
+author: "Fernando Cagua"
+date: "14 November 2017"
+output:
+  word_document: default
+  html_document: default
+---
+
+```{r setup, echo=FALSE}
+suppressPackageStartupMessages({
+	library(mgcv)
+	library(dplyr)
+	library(broom)
+})
+
+fled_mod <- readRDS('../data/processed/fledging_success_models.rds')
+nest_mod <- readRDS('../data/processed/new_nest_models.rds')
+
+summary_table <- function(x, model) {
+	plyr::ldply(x$mean, tidy) %>%
+		mutate(term = if_else(term == "s(month)", "season", "trend")) %>%
+		filter(spp_name == "White-tail tropicbird") %>%
+		select(-spp_name) %>%
+		mutate(model = model)
+}
+
+summary_table(fled_mod, "success") %>%
+	filter(term == "trend") %>%
+	bind_rows(summary_table(nest_mod, "nests")) %>%
+	select(model, location, term, edf, statistic, p.value) %>%
+	mutate(edf = round(edf, 2), 
+				 statistic = round(statistic, 2), 
+				 p.value = round(p.value, 3)) %>%
+	rename(`Chi^2`= statistic, 
+				 p = p.value) %>%
+	knitr::kable()
+```
+
