@@ -1,0 +1,14 @@
+
+tropicbird/\.Rproj\.user/
+
+tropicbird/data/raw/satellite/
+
+tropicbird/data/raw/\.DS_Store
+
+tropicbird/data/raw/~\$Copy of Aride Tropicbird breeding data cleaned and summaried - am20170831\.xlsx
+
+tropicbird/data/\.DS_Store
+
+*.DS_Store
+tropicbird/data/gis/\.DS_Store
+.Rproj.user
