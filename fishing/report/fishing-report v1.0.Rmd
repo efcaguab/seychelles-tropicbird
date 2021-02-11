@@ -1,0 +1,238 @@
+---
+title: "The sustainability of Aldabra's subsistence fishing"
+author: "Fernando Cagua --- 26 August 2016"
+output:
+  word_document:
+    toc: no
+  html_document:
+    theme: cosmo
+    toc: no
+    toc_float: yes
+bibliography: references.bib
+---
+
+```{r libraries, include = FALSE}
+library(magrittr)
+library(plotly)
+library(ggplot2)
+library(DT)
+
+source('../code/numbers2words.R')
+```
+
+```{r read data, echo=FALSE}
+fs <- readRDS("../data/processed/fish-sustainability.rds")
+
+# Manually fix C. undulatus and Istiompax indica
+fs[fs$sciname == "Istiompax indica", c('catch', 'biomass')] <- c(1, 90)
+fs[fs$sciname == "Cheilinus undulatus", c('catch', 'biomass')] <- c(6, 157)
+
+res_eq <- data.frame(Resilience = c('Very low', 'Low', 'Medium', 'High'),
+                     n_res = c(1, 2, 3, 4))
+```
+
+```{r clean stuff, echo = F, warning=F, message=F}
+plot_fs <- fs %>%
+  dplyr::mutate(catch = replace(catch, is.na(catch), 1),
+                biomass = replace(biomass, is.na(biomass) | 0, 3)) %>%
+  dplyr::inner_join(res_eq) %>%
+  dplyr::arrange(desc(catch)) %>%
+  dplyr::mutate(a = catch >= 100 | IUCN_Code %in% c('NT', 'VU', 'EN'))
+
+names(plot_fs)[1:3] <- c('Scientific_Name',
+                    'Common_Name',
+                    'Vulnerability')
+
+names(plot_fs)[9:11] <- c('IUCN_Status',
+                    'vuln_categ',
+                    'Catch_individuals')
+```
+
+
+```{r calculations, echo = F, warning=F, message=F}
+
+# conditional mutate
+mu_c <- function(.data, condition, ..., envir = parent.frame()) {
+	condition <- eval(substitute(condition), .data, envir)
+	.data[condition, ] <- .data[condition, ] %>% dplyr::mutate(...)
+	.data
+}
+
+table_fs <- plot_fs %>%
+  dplyr::mutate(Risk = "0 - Low") %>%
+    mu_c((Resilience %in% c('Very low', 'Low')) | 
+         (Vulnerability > 60), 
+         Risk = "1 - Follow up") %>%
+  mu_c(((Resilience %in% c('Very low', 'Low')) & (Vulnerability > 60)) |
+         (Resilience == 'Very low' | Vulnerability > 80) | (IUCN_Code == 'NT'), 
+       Risk = "2 - Moderate") %>%
+  mu_c(((Resilience == 'Very low' & Vulnerability > 60) |
+                  (Vulnerability > 80 & Resilience %in% c('Low', 'Very Low'))),
+       Risk = "3 - High")  %>%
+  mu_c(((Resilience %in% c('Very low')) &
+                  (Vulnerability > 80)) | (IUCN_Code %in% c('VU', 'EN')),
+       Risk = "4 - Very high")
+
+```
+
+
+```{r names, echo = F}
+totals <- table_fs %>% 
+  dplyr::group_by(Risk) %>% 
+  dplyr::summarise(n_sp = n(),
+                   n_ind = sum(Catch_individuals),
+                   bio = sum(biomass)) %>%
+  dplyr::group_by() %>%
+  dplyr::mutate(p_ind = round(n_ind / sum(n_ind) * 100),
+                p_bio = round(bio / sum(bio) * 100))
+
+names <- table_fs %>%
+  dplyr::mutate(full_name = paste0(tolower(Common_Name), " (*", Scientific_Name, "*)"))
+
+names2 <- table_fs %>%
+  dplyr::mutate(full_name = paste0(tolower(Common_Name), " (", Scientific_Name, ")"))
+
+print_names <- function(names, x, mid_sep = ", the ", last_sep = ", and the "){x
+  n <- dplyr::filter(names, Risk == x) %$% full_name %>% as.list() 
+  last <- dplyr::last(n)
+  n <- n[-length(n)]
+  n$sep <- mid_sep
+  do.call(paste, n) %>% paste(last, sep = last_sep)
+}
+  
+```
+
+Summary
+
+:    *It is at the core of SIF's mission to ensure the protection of Aldabra's marine life. Using historic landing data from the Aldabra subsistence fishery and previously published species level extinction risk information, I identified five species whose local populations are at very high risk of decline even from low levels of fishing pressure, or that are globally threatened. These species were characterised by both a very high vulnerability (potentially large declines caused by fishing) and a very low resilience (slow population recoveries). Specifically fishing of the `r print_names(names2, "4 - Very high")` is best avoided, and individuals should released upon capture. Furthermore, I identified a set of another `r sum(totals$n_sp[totals$Risk %in% c("2 - Moderate", "3 - High")])` species whose populations do not warrant full protection, but should be closely monitored for signs of decline. Limiting the landings of species at very high risk requires is not likely to substantially affect the obtention of high quality protein for Aldabra staff, but requires small modifications to the current fishing practices. The most important one being the avoidance of deep water fishing, where barotrauma induced mortality is likely and fisheries independent monitoring is not feasible.* 
+
+# Introduction
+
+Subsistence fishing is the main source of protein for the SIF staff posted at Aldabra. This activity, not only highlights the nourishing nature of the reefs, but is also a key component in the life of Aldabra's residents that bonds together the science and logistics team and embodies the intimate relationship that exists between Seychellois and the ocean. Nevertheless, given Aldabra's conservation status, the possible impacts on the ecosystem of any kind of extractive activity requires careful and science-informed consideration.  Ensuring the conservation of Aldabra's marine life, which is at the core of SIF's mission, should be given top priority. 
+
+Fishing in Aldabra is strictly allowed only for sustenance of the staff posted in the station. Currently, fishing is performed opportunistically and, with the exception of sharks, it is undiscriminated over the set of species available for catch. Nevertheless, ample evidence suggest that the populations of some coral reef fish species are at jeopardy even by low levels of fishing pressure [@Cheung2005]. The direct effect of fishing on these species is characterised by a rapid population decline and particularly slow recoveries [@Graham2003a]. Moreover, the population decline of these species has been shown to also have important indirect effects on the structure of the fish communities as a whole and the functioning of the wider coral reef ecosystem [@Dulvy2004]. 
+
+Ensuring healthy and diverse marine communities within the protected area is a central duty of SIF. However, Aldabra's status as an UNESCO World Heritage site means that its responsibility is not limited to the management of local fish populations. Instead, Aldabra's potential to play an important role in the recovery of species that have been decimated elsewhere, should also be reflected in Aldabra's management policies. The Red List of the International Union for Conservation of Nature (IUCN) identifies a set of species that are considered to be facing a high risk of extinction in the wild due to either small populations, large population declines, or limited geographic ranges. Even if Aldabra's local populations of threatened species are healthy, preventing their catch maximises the potential for larval export and the recovery of these species elsewhere [@Harrison2012]. What is more, limiting the capture of threatened species is consistent with SIF's tradition being a regional example of conservation practices and of developing and implementing leading management practices. 
+
+Here, I use historic catch data of the Aldabra subsistence fishery and combine it with previously published species level information to identify a subset of species for which firm and actively enforced restrictions are strongly recommended. Species were included in this subset either because there is strong evidence that supports highly detrimental effects of fishing on local populations, or because of its global conservation status. Furthermore, I also identify species for which the effects of subsistence fishing should be closely monitored—through catch per unit effort, baited remote underwater video systems, and underwater fish surveys—in order to respond rapidly should declining trends be identified. 
+
+# Vulnerability + resilience {.tabset}
+
+Intuitively, the effect of exploitation on a species is determined by two overarching factors: vulnerability and resilience. On one hand vulnerability is a reflection of the inherent sensitivity of a species' population to exploitation [@Cheung2005]. This is, for a fixed level of fishing pressure, the abundance of a highly vulnerable species is more rapidly and acutely affected than the abundance of a non-vulnerable species. However, a potential population decline due to fishing is just half of the story. Resilience, on the other hand, is a reflection of a species' inherent ability to recover from disturbances [@Musick1999]. This is, highly resilient species will bounce back more quickly after fishing pressure has been removed, or decreased, than species with low resilience. 
+
+In temperate fisheries, proxies for the effects of exploitation on a species are usually determined using vast data sets and sophisticated models [@Graham2003a]. Despite the need for improved management on diverse—and highly complex—tropical marine ecosystems, the required levels of information for a similar approach, or the time required for its collection, are not available [@Reynolds2001a]. Fortunately, it has been previously shown that both vulnerability and resilience are, at least partially, determined by life history parameters and ecological characteristics [@Graham2011]. This is because ultimately these parameters govern a species maximum rate of population growth and the strength of density dependence [@Cheung2005]. 
+
+I compiled previously published estimates of resilience [@Musick1999] and vulnerability [@Cheung2005] for all species historically caught in the Aldabra subsistence fishing. For each species, these two proxies were calculated based, when available, on a diverse array of life history parameters. Parameters included *(i)* the intrinsic rate of population growth (which is directly related to the maximum sustainable yield) *(ii)* the growth coefficient, *(iii)* fecundity, *(iv)* maximum age, *(v)* age at first maturity, *(vi)*  maximum length, *(vii)* the extent of the geographic range, *(viii)* the spatial behaviour, and *(ix)* whether the species aggregates for feeding or spawning. The paucity of life history data for several coral reef fish species implies that estimates of resilience and vulnerability are surrounded by large uncertainties. Nevertheless, these proxies have been previously shown to accurately predict population trends in several tropical fisheries [@Cheung2005]. 
+
+## By Nº individuals
+
+For each species area of the circle indicates the number of individuals caught in Aldabra to the date of this report. Species were classified in four categories of resilience suggested by the American Fisheries Society—see [FishBase description](http://www.fishbase.us/manual/English/Key%20Facts.htm#resilience)  and @Musick1999 for details. Vulnerability was quantified in an arbitrary scale from 0 to 100 using a fuzzy logic expert system [@Cheung2005]. Values from 0-20 correspond to very low vulnerability, from 20-40 low to moderate, 40-60 moderate to high, 60-80 high to very high, and 80-100 to very high vulnerability.
+
+```{r plot number, fig.width = 9.5, echo = F, fig.align='center', message = F, warning = F}
+make_plot_by <- function(x){
+  plot_fs %>%
+  dplyr::arrange(-Catch_individuals) %>%
+  ggplot(aes_string(x = 'Vulnerability', y = 'n_res')) +
+  geom_rect(xmin = 60, xmax = 100, ymin = 0.25, ymax = 4.75, alpha = 0.1, fill = "#e31a1c") + 
+    geom_rect(xmin = 0, xmax = 100, ymin = 0.25, ymax = 2.5, alpha = 0.1, fill = "#e31a1c") + 
+    geom_rect(xmin = 80, xmax = 100, ymin = 0.25, ymax = 4.75, alpha = 0.1, fill = "#e31a1c") +
+    geom_rect(xmin = 0, xmax = 100, ymin = 0.25, ymax = 1.5, alpha = 0.1, fill = "#e31a1c") +
+  # geom_rect(xmin = 70, xmax = 100, ymin = 0.25, ymax = 1.5, alpha = 0.15, fill = "#e31a1c") +
+  geom_point(aes_string(size = x, 
+                 fill = 'IUCN_Status', 
+                 label = 'Scientific_Name', 
+                 text = 'Common_Name'), 
+              alpha = 0.75, shape = 21, stroke = 0.3) +
+  # geom_text(label = "Risk zone", x = 75, y = 1.375, colour = "#e31a1c") + 
+  # geom_text(aes(label = FBname, alpha = a),
+  #            position = position_jitter(height = 0.9, width = 0),
+  #            size = 3) +
+  scale_y_continuous(breaks = 1:4, 
+                     labels = c('Very low', 'Low', 'Medium', 'High'),
+                     limits = c(0.5, 4.5), name = "Species resilience") +
+  scale_x_continuous(breaks = seq(20, 80, 20), 
+                     labels = c('Low', 'Moderate', 'High', 'Very high'), 
+                     name = "Species vulnerability") + 
+  scale_size(range = c(1,35), guide = "none") +
+  scale_fill_manual(labels = c('Not evaluateddd',
+                               'Data deficient',
+                               'Least concern',
+                               'Near Threatened',
+                               'Vulnerable',
+                               'Endangered'),
+                    values = c('grey95',
+                               'grey95',
+                               '#33a02c',
+                               '#ff7f00',
+                               '#e31a1c',
+                               '#e31a1c')) +
+  theme_bw()
+} 
+
+ggplotly(make_plot_by('Catch_individuals'), tooltip = c('text', 'label', 'fill', 'size', 'x'))
+```
+
+## By biomass (kg)
+
+For each species area of the circle indicates the biomass (in kilograms) caught in Aldabra to the date of this report. Species were classified in four categories of resilience suggested by the American Fisheries Society—see [FishBase description](http://www.fishbase.us/manual/English/Key%20Facts.htm#resilience)  and @Musick1999 for details. Vulnerability was quantified in an arbitrary scale from 0 to 100 using a fuzzy logic expert system [@Cheung2005]. Values from 0-20 correspond to very low vulnerability, from 20-40 low to moderate, 40-60 moderate to high, 60-80 high to very high, and 80-100 to very high vulnerability.
+
+```{r plot weight, fig.width = 9.5, echo = F, fig.align='center', message = F, warning = F}
+ggplotly(make_plot_by('biomass'), tooltip = c('text', 'label', 'fill', 'size', 'x'))
+```
+
+# Identifying species at risk
+
+Compiling species parameters enable us to construct risk profiles for Aldabra's fish species. In particular, it is possible to observe the emergence of an evident risk zone in which species are imperiled by the compound effects of *both* a rapid population decline and a very slow recovery. I classified the species into five particular categories of risk—which correspond to the shades of red in the upper figure. Although the particular thresholds used in this classification are somewhat arbitrary they are in strong agreement with escalating levels of diminished resilience and increased vulnerability. Specifically, the categories are:
+
+- 4 - Very high risk: A species is at very high risk if it has both a very low resilience *and* a very high vulnerability (>80), *or* has been listed by the IUCN as globally vulnerable or endangered
+- 3 - High risk: A species is at high risk if it a low resilience and a very high vulnerability (>80) *or* a a high vulnerability (>60 and <80) and a very low resilience.
+- 2 - Moderate risk: A species is at moderate risk if does not qualify as high or very high risk and has has either a very low resilience pr a very high vulnerability (>80), or a low resilience and high vulnerability (>60 and <80), *or* has been listed by the IUCN as near threatened.
+- 1 - Follow up: A species deserves follow up if it does not qualify as within the moderate, high or very high risk categories and has either low resilience or high vulnerability (>60 and <80).
+- 0 - Low risk: A species is at low risk if it does not not qualify into any other category
+
+Out of the `r sum(totals$n_sp)` fish species that have been historically caught in Aldabra, I identified `r numbers2words(totals$n_sp[totals$Risk == "4 - Very high"])` species that satisfy the criterium established for very high risk, and therefore justify a total ban on their landings. Specifically the `r print_names(names, "4 - Very high")`. In addition, I identified `r numbers2words(totals$n_sp[totals$Risk == "3 - High"])` species at high risk, namely the `r print_names(names, "3 - High", mid_sep = "", last_sep = " and the ")`.
+
+The consideration of fishing restrictions for species within the very high risk, and perhaps the high risk categories is fully justified based on theoretical and empirical evidence collected in other tropical coral reef fisheries [@Graham2011]. Restrictions on a second group of species—those at moderate risk—is however not fully justified under current evidence. Nevertheless, the status of these `r totals$n_sp[totals$Risk == "2 - Moderate"]` warrant frequent reassessment based on both fisheries dependent and independent monitoring.
+
+```{r table, echo = F}
+table_fs %>%
+  dplyr::mutate(Scientific_Name = paste0(
+    "<a href='http://www.fishbase.org/summary/", 
+    SpecCode, 
+    "' target='_blank'>", Scientific_Name, "</a>")) %>%
+  mu_c(IUCN_Code != "N.E.", IUCN_Code = paste0(
+      "<a href='http://www.iucnredlist.org/details/",
+      IUCN_ID, 
+    "/0' target='_blank'>", IUCN_Code, "</a>")) %>%
+  dplyr::select(Risk, Common_Name, Scientific_Name, Resilience, Vulnerability, IUCN_Code, Catch_individuals, biomass) %>%
+  dplyr::rename(Vuln = Vulnerability,
+                N_Ind. = Catch_individuals, 
+                IUCN = IUCN_Code, 
+                Kg = biomass) %>%
+  dplyr::arrange(dplyr::desc(Risk), dplyr::desc(Vuln)) %>%
+  datatable(escape = F, options = list(
+    columnDefs = list(list(className = 'dt-center', targets = 6)),
+    pageLength = 15,
+    lengthMenu = c(15, 30, 70)), 
+    caption = "Aldabra species' risk classification. For more information click on the species scientific name or the IUCN assesment code.") %>% 
+  formatStyle('Risk', fontWeight = styleEqual('4 - Very high' ,'bold')) %>%
+  formatStyle('Scientific_Name', fontStyle = 'italic')
+
+```
+
+# Implications
+
+The species identified as at very high risk represent only a `r totals$p_ind[totals$Risk == '4 - Very high']`% of the total landings in terms of the number of individual fish. In terms of biomass, these species have provided `r round(totals$bio[totals$Risk == '4 - Very high']/1000, digits = 1)` metric tones of fish, which accounts for `r totals$p_bio[totals$Risk == '4 - Very high']`% of of the total fished biomass. Although it is certainly a significant contribution, the fact that both most of the fish and the biomass come from species at lower risk is encouraging. All together, these figures suggest that obtaining high quality protein for the subsistence of SIF staff posted in Aldabra will not be substantially affected by the implementation of fishing restrictions on these species. The potential inconveniences caused by the release of these species and the small reduction of catch are far outweighed by the potential conservation benefits.
+
+The effective release and posterior survival of these species is, however, not except of challenges. This is particularly true for groupers (Serranidae) because their large swim bladders renders them highly sensitive to barotrauma. Nevertheless, increasing the survival likelihood of released fish is easily attainable with small modifications to the current fishing practices. The factors influencing fish welfare have been scientifically evaluated by the @Fao2008 and can be summarised in four simple practices relevant to Aldabra context:
+
+- *Limit fishing depth* to 50m (initially). Research suggest that the survival of released fish that has been caught on deep water is extremely low. This is due to barotrauma, the damage of the internal organs caused by rapid changes in pressure. Venting the swim bladder with a needle, which may allow fish to swim back to depth, is an alternative that can work for fish caught at moderate depths. However, research has shown that venting does not reduces mortality of fish with severe barotrauma.  
+- *Minimise handling time* as there is a strong positive correlation between handling and mortality. To reduce handling time of fish to be released, Aldabra anglers should avoid air exposure when possible by releasing the fish in the water. And consider the use of barbless hooks as the amount of both the time required to remove the hook and the tissue damage are significantly reduced. 
+- *Reduce tissue damage.* Fish survivorship is greatly diminished when damaged is done to sensitive organs. In general for fish that should be released Aldabra anglers should, avoid touching the gills and eyes, avoid squeezing the fish or use unnecessary force while unhooking, minimise damage to the skin, and release deeply hooked fish by cutting the line and only if survival is likely. 
+- *Be aware of predators* and move to an alternative location if fish is likely to be eaten when returning to depth. 
+
+Ensuring that these fishing practices are appropriately enforced requires the active involvement of the whole fishing team. However, in my opinion, it would be facilitated by a change on perspective, in which fishing is seen more as a research activity. Therefore, at least during the implementation of potential restrictions, the members of the science team would assume a leadership role during the fishing trips. This includes sharing decisions with the skipper about the choice of fishing grounds, the locations and duration of the fishing sessions, and the fishing gear. 
+
+Although restricting the landings of some of the largest and most delicious inhabitants of the reef might initially be an unpopular measure, these restrictions effectively operate as an insurance against their decline. Despite the establishment of no-take and food-security zones in the forthcoming management plan, research suggest that large bodied predatory fish require substantially large no take areas for its protection. Further understanding of both the reproductive biology and the spatial behaviour of these species might reveal that Aldabra subsistence fishing, at least under certain conditions, can be done on these species without substantially affect their abundances. For now, an informed preemtive approach should at least be considered for the management of Aldabra's exceptional marine resources.
+
+# References
