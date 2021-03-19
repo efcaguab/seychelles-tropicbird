@@ -102,7 +102,7 @@ saveRDS(list(per_islet = models_islet, mean = models_general),
 
 # With all other islets for hatching success
 
-alda <- nests %>%
+alda <- nest_success %>%
 	# se(fe_e, fate_e, fate_h) %>%
 	fi(fate_e != "undertermined", 
 		 fate_h != "undetermined") %>%
@@ -137,3 +137,9 @@ models_general <- hatching_success %>% plyr::dlply(c('spp_name', 'location'),fun
 
 saveRDS(list(per_islet = models_islet, mean = models_general),
 				'../data/processed/fledging_success_models.rds')
+
+hatching_success %>% 
+	dplyr::rename(day_of_year = month, date_numeric = date_n) %>% 
+	dplyr::filter(spp_name == "White-tail tropicbird") %>% 
+	readr::write_csv("success_model_data.csv")
+
